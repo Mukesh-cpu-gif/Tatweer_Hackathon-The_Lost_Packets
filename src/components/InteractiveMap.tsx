@@ -46,6 +46,7 @@ export default function InteractiveMap({ routeType, start, end }: InteractiveMap
         zoom={11}
         scrollWheelZoom={false}
         className="h-full w-full"
+        style={{ height: "100%", width: "100%", minHeight: "100%" }}
         zoomControl={false}
         attributionControl={false}
       >

@@ -185,7 +185,7 @@ export default function ResponderDashboard() {
                     <Separator className="bg-zinc-800/50" />
                     
                     <CardFooter className="p-4 grid grid-cols-2 gap-3 bg-zinc-950/30">
-                      <Link href="/responder/map" className="w-full">
+                      <Link href={`/responder/map?incidentId=${inc.id}`} className="w-full">
                         <Button 
                           variant="outline" 
                           className="w-full border-zinc-700/50 bg-zinc-900/50 hover:bg-indigo-950/40 hover:text-indigo-300 hover:border-indigo-500/30 text-zinc-300 font-bold tracking-widest text-[10px] uppercase h-11"

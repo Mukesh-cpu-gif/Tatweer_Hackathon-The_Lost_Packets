@@ -1,25 +1,63 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MapWrapper from "@/components/MapWrapper";
-import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass } from "lucide-react";
-import { useState } from "react";
+import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass, Maximize2, X, AlertTriangle } from "lucide-react";
+import { mockIncidents, mockResponders } from "@/lib/mockData";
 
 /**
- * Mock Dune vs. Paved Route Comparison Page — Deep Space Aesthetic
+ * Route Comparison Content — Handles Geolocation, Fallbacks, and Map Rendering
  */
-export default function MapComparison() {
+function MapContent() {
+  const searchParams = useSearchParams();
+  const incidentId = searchParams.get("incidentId");
+
   const [navigating, setNavigating] = useState(false);
+  const [fullscreenMap, setFullscreenMap] = useState<"paved" | "dune" | null>(null);
+
+  const [responderCoords, setResponderCoords] = useState<[number, number] | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Find incident from URL param
+  const incident = mockIncidents.find(inc => inc.id === incidentId) || mockIncidents[0];
+  const incidentCoords: [number, number] = [incident.location.lat, incident.location.lng];
+
+  // Mock fallback for responder
+  const fallbackResponderCoords: [number, number] = [mockResponders[0].location.lat, mockResponders[0].location.lng];
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setResponderCoords([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.error("Geo error:", error);
+          setGeoError("GPS blocked or unavailable. Using mock responder location.");
+          setResponderCoords(fallbackResponderCoords);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      setGeoError("Geolocation not supported by device.");
+      setResponderCoords(fallbackResponderCoords);
+    }
+  }, []);
+
+  // Prevent scroll when fullscreen
+  useEffect(() => {
+    if (fullscreenMap) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "auto";
+    return () => { document.body.style.overflow = "auto"; };
+  }, [fullscreenMap]);
 
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
-      
-      {/* ─── Cosmic Nebulas ───────────────────────────────────── */}
-      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
-
+    <>
       {/* ─── Header ──────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-zinc-950/40 backdrop-blur-xl border-b border-zinc-800/50">
         <div className="px-5 py-4 max-w-2xl mx-auto flex items-center justify-between">
@@ -39,13 +77,23 @@ export default function MapComparison() {
             </div>
           </div>
           <Badge variant="outline" className="bg-indigo-950/30 border-indigo-500/30 text-indigo-300 font-bold tracking-widest text-[10px] uppercase">
-            ID: VST-892
+            ID: {incident.id}
           </Badge>
         </div>
       </header>
 
       <main className="relative z-10 px-5 py-6 space-y-6 max-w-2xl mx-auto">
         
+        {/* Geo Warning Banner */}
+        {geoError && (
+          <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-amber-200/80 text-xs font-medium tracking-wide leading-relaxed">
+              {geoError} This happens on local networks or if permissions are denied.
+            </p>
+          </div>
+        )}
+
         {/* ─── Summary Card ────────────────────────────────────── */}
         <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
@@ -59,76 +107,69 @@ export default function MapComparison() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {/* ─── Standard Road Route ────────────────────────────── */}
-          <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
-            <CardHeader className="pb-3 border-b border-zinc-800/50 bg-zinc-950/30">
-              <CardTitle className="text-xs font-bold tracking-widest uppercase text-zinc-400 flex items-center gap-2">
-                <Route size={16} /> Standard Road Route
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Timer size={16} />
-                  <span className="font-mono text-sm">47 mins</span>
+        {!responderCoords ? (
+          <div className="h-64 flex flex-col items-center justify-center bg-zinc-900/20 border border-zinc-800/30 rounded-2xl border-dashed">
+            <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-3" />
+            <p className="text-zinc-500 text-sm font-medium tracking-wide">Acquiring GPS Signal...</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* ─── Standard Road Route ────────────────────────────── */}
+            <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
+              <CardHeader className="pb-3 border-b border-zinc-800/50 bg-zinc-950/30">
+                <CardTitle className="text-xs font-bold tracking-widest uppercase text-zinc-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Route size={16} /> Standard Road Route</div>
+                  <button onClick={() => setFullscreenMap("paved")} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                    <Maximize2 size={16} />
+                  </button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Timer size={16} />
+                    <span className="font-mono text-sm">47 mins</span>
+                  </div>
+                  <Badge variant="outline" className="bg-zinc-900/50 border-zinc-700 text-zinc-400 text-[10px] tracking-widest uppercase">
+                    38 km
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="bg-zinc-900/50 border-zinc-700 text-zinc-400 text-[10px] tracking-widest uppercase">
-                  38 km
-                </Badge>
-              </div>
 
-              {/* Interactive map */}
-              <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-zinc-800/50 overflow-hidden">
-                <MapWrapper
-                  routeType="paved"
-                  start={[23.5410, 55.4890]}
-                  end={[23.5450, 55.4900]}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-[10px] tracking-widest uppercase font-bold text-zinc-500">
-                <div className="bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-800/50 text-center">Via E95 Highway</div>
-                <div className="bg-zinc-900/50 p-2.5 rounded-lg border border-zinc-800/50 text-center">Paved Road</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ─── Aounak Dune Route ──────────────────────────────── */}
-          <Card className="bg-zinc-900/40 backdrop-blur-md border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.05)] relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
-            <CardHeader className="pb-3 border-b border-amber-900/30 bg-amber-950/10">
-              <CardTitle className="text-xs font-bold tracking-widest uppercase text-amber-400 flex items-center gap-2">
-                <Compass size={16} /> Aounak Dune Route
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-4 relative z-10">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-amber-300">
-                  <Timer size={16} />
-                  <span className="font-mono text-xl font-bold">12 mins</span>
+                <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-zinc-800/50 overflow-hidden group">
+                  <MapWrapper routeType="paved" start={responderCoords} end={incidentCoords} />
                 </div>
-                <Badge variant="outline" className="bg-amber-950/40 border-amber-500/30 text-amber-400 text-[10px] tracking-widest uppercase shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                  4.2 km
-                </Badge>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Interactive map */}
-              <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-amber-500/30 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-                <MapWrapper
-                  routeType="dune"
-                  start={[23.5410, 55.4890]}
-                  end={[23.5450, 55.4900]}
-                />
-              </div>
+            {/* ─── Aounak Dune Route ──────────────────────────────── */}
+            <Card className="bg-zinc-900/40 backdrop-blur-md border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.05)] relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
+              <CardHeader className="pb-3 border-b border-amber-900/30 bg-amber-950/10 relative z-10">
+                <CardTitle className="text-xs font-bold tracking-widest uppercase text-amber-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Compass size={16} /> Aounak Dune Route</div>
+                  <button onClick={() => setFullscreenMap("dune")} className="text-amber-500/70 hover:text-amber-300 transition-colors">
+                    <Maximize2 size={16} />
+                  </button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-300">
+                    <Timer size={16} />
+                    <span className="font-mono text-xl font-bold">12 mins</span>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-950/40 border-amber-500/30 text-amber-400 text-[10px] tracking-widest uppercase shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                    4.2 km
+                  </Badge>
+                </div>
 
-              <div className="grid grid-cols-2 gap-3 text-[10px] tracking-widest uppercase font-bold text-amber-400/70">
-                <div className="bg-amber-950/20 p-2.5 rounded-lg border border-amber-900/30 text-center">Line of Sight</div>
-                <div className="bg-amber-950/20 p-2.5 rounded-lg border border-amber-900/30 text-center">Sand Dune</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-amber-500/30 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                  <MapWrapper routeType="dune" start={responderCoords} end={incidentCoords} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* ─── Navigation Details ─────────────────────────────── */}
         <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
@@ -138,13 +179,11 @@ export default function MapComparison() {
                 <MapIcon size={20} className="text-indigo-400" strokeWidth={1.5} />
               </div>
               <div>
-                <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-0.5">Start Coordinates</p>
-                <p className="font-mono text-zinc-300 text-sm tracking-tight">23.5410° N, 55.4890° E</p>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-0.5">Your Position</p>
+                <p className="font-mono text-zinc-300 text-sm tracking-tight">
+                  {responderCoords ? `${responderCoords[0].toFixed(4)}°, ${responderCoords[1].toFixed(4)}°` : "---"}
+                </p>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-0.5">Incident Coords</p>
-              <p className="font-mono text-zinc-300 text-sm tracking-tight">23.5450° N, 55.4900° E</p>
             </div>
           </CardContent>
         </Card>
@@ -173,6 +212,36 @@ export default function MapComparison() {
           </Button>
         </div>
       </main>
+
+      {/* ─── Fullscreen Map Modal ──────────────────────────────── */}
+      {fullscreenMap && responderCoords && (
+        <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col">
+          <div className="p-4 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/50 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
+            <h2 className={`font-bold tracking-widest uppercase text-xs ${fullscreenMap === "dune" ? "text-amber-400" : "text-zinc-300"}`}>
+              {fullscreenMap === "dune" ? "Aounak Dune Route" : "Standard Road Route"}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={() => setFullscreenMap(null)} className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+              <X size={24} />
+            </Button>
+          </div>
+          <div className="flex-1 w-full h-full pt-14">
+            <MapWrapper routeType={fullscreenMap} start={responderCoords} end={incidentCoords} />
+          </div>
+        </div>
+      )}
+
+    </>
+  );
+}
+
+export default function MapComparison() {
+  return (
+    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
+      {/* ─── Cosmic Nebulas ───────────────────────────────────── */}
+      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest">Loading Route Data...</div>}>
+        <MapContent />
+      </Suspense>
     </div>
   );
 }

@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { mockIncidents, sosTypes } from "@/lib/mockData";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { mockIncidents as fallbackMockIncidents, sosTypes, Incident } from "@/lib/mockData";
+import { subscribeToIncidents, acceptIncident } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,12 +24,45 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 export default function ResponderDashboard() {
+  const router = useRouter();
   const [acceptedIncidents, setAcceptedIncidents] = useState<Set<string>>(new Set());
+  const [liveIncidents, setLiveIncidents] = useState<Incident[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [now] = useState(() => Date.now());
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const handleAccept = (id: string) => {
-    setAcceptedIncidents((prev) => new Set(prev).add(id));
+  // Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        setAuthLoading(false);
+      } else {
+        router.push("/login");
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  // Firestore Live Incidents Listener
+  useEffect(() => {
+    if (!user) return; // Only subscribe if logged in
+    const unsubscribe = subscribeToIncidents((incidents) => {
+      setLiveIncidents(incidents.length > 0 ? incidents : fallbackMockIncidents);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAccept = async (id: string) => {
+    try {
+      await acceptIncident(id);
+      setAcceptedIncidents((prev) => new Set(prev).add(id));
+    } catch (error) {
+      console.error("Failed to accept incident", error);
+      // Fallback to local state if firestore fails
+      setAcceptedIncidents((prev) => new Set(prev).add(id));
+    }
   };
   const timeAgo = (ts: string) => {
     const diff = Math.floor((now - new Date(ts).getTime()) / 60000);
@@ -33,6 +70,15 @@ export default function ResponderDashboard() {
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
+        <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Authenticating Dispatch...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
@@ -77,7 +123,7 @@ export default function ResponderDashboard() {
                   <User size={24} className="text-zinc-400" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-zinc-100 tracking-wide">Ahmed Al Dhaheri</h2>
+                  <h2 className="font-semibold text-zinc-100 tracking-wide">{user?.displayName || user?.phoneNumber || "Aounak Responder"}</h2>
                   <div className="flex items-center gap-1.5 text-xs text-indigo-200/60 mt-0.5">
                     <Car size={12} /> Toyota Land Cruiser
                   </div>
@@ -122,9 +168,9 @@ export default function ResponderDashboard() {
                 <p className="text-zinc-600 text-xs mt-1">Toggle availability to receive dispatch requests.</p>
               </div>
             ) : (
-              mockIncidents.map((inc) => {
+              liveIncidents.map((inc) => {
                 const sosType = sosTypes.find((s) => s.id === inc.type);
-                const isAccepted = acceptedIncidents.has(inc.id);
+                const isAccepted = acceptedIncidents.has(inc.id) || inc.status === "accepted";
                 const Icon = sosType?.lucideIconName && iconMap[sosType.lucideIconName] ? iconMap[sosType.lucideIconName] : Activity;
 
                 return (

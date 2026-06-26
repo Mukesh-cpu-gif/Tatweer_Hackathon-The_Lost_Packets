@@ -4,20 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronLeft, LogIn, Mail, Phone, Shield } from "lucide-react";
+import { auth } from "@/lib/firebase";
+import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
-  // Note: Actual Firebase integration will be hooked up here
-  const handleMockLogin = () => {
+  // Actual Firebase integration for Google Login
+  const handleGoogleLogin = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
       router.push("/responder");
-    }, 1500);
+    } catch (error) {
+      console.error("Login failed", error);
+      // Fallback or error handling can be added here
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,7 +71,7 @@ export default function LoginPage() {
           <CardContent className="pt-6 space-y-4">
             
             <Button 
-              onClick={handleMockLogin}
+              onClick={handleGoogleLogin}
               disabled={loading}
               className="w-full h-12 bg-white text-zinc-950 hover:bg-zinc-200 font-semibold tracking-wide"
             >

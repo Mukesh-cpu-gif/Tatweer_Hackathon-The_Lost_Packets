@@ -10,6 +10,8 @@ import { queueSosRequest, registerSosSync } from "@/lib/storage";
 import { createIncident, subscribeToResponders } from "@/lib/db";
 import type { Responder } from "@/lib/mockData";
 import OfflineAnimalAI from "@/components/OfflineAnimalAI";
+import LivestockSelector from "@/components/LivestockSelector";
+import FuelCalculator from "@/components/FuelCalculator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,30 +36,31 @@ function SOSContent() {
   const typeId = searchParams.get("type");
   const sosType = sosTypes.find((t) => t.id === typeId);
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() =>
-    hasBrowserGeolocation() ? null : fallbackCoords
-  );
-  const [geoError, setGeoError] = useState<string | null>(() =>
-    hasBrowserGeolocation() ? null : "Geolocation not supported. Using fallback coordinates."
-  );
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [queued, setQueued] = useState(false);
+  const [livestockInfo, setLivestockInfo] = useState<string>("");
+  const [fuelRequestInfo, setFuelRequestInfo] = useState<string>("");
   const [responders, setResponders] = useState<Responder[]>([]);
 
   useEffect(() => {
-    if (!hasBrowserGeolocation()) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-      },
-      (error) => {
-        console.error("Geo error:", error);
-        setGeoError("Using fallback Al Qua'a coordinates.");
-        setCoords(fallbackCoords);
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (error) => {
+          console.error("Geo error:", error);
+          setGeoError("Using fallback Al Qua'a coordinates.");
+          setCoords(fallbackCoords);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      setGeoError("Geolocation not supported. Using fallback coordinates.");
+      setCoords(fallbackCoords);
+    }
   }, []);
 
   useEffect(() => registerSosSync(), []);
@@ -105,7 +108,14 @@ function SOSContent() {
     if (!coords) return;
     setQueued(true); // Treat as pending/sending
     try {
-      const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
+      let extraInfo = "";
+      if (sosType.id === "venomous_bite") {
+        extraInfo = "Possible venomous creature";
+      } else if (sosType.id === "sick_livestock") {
+        extraInfo = livestockInfo || "Sick livestock reported";
+      } else if (sosType.id === "out_of_fuel") {
+        extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+      }
       await createIncident(sosType.id, coords, "Emergency Requester", extraInfo);
       // Wait a moment then show success
       setTimeout(() => setQueued(false), 2000);
@@ -120,7 +130,14 @@ function SOSContent() {
   const handleOfflineSms = async () => {
     if (!coords) return;
     const phone = "+971501234567";
-    const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
+    let extraInfo = "";
+    if (sosType.id === "venomous_bite") {
+      extraInfo = "Possible venomous creature";
+    } else if (sosType.id === "sick_livestock") {
+      extraInfo = livestockInfo || "Sick livestock reported";
+    } else if (sosType.id === "out_of_fuel") {
+      extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+    }
     const smsLink = generateSmsDeepLink(
       phone,
       sosType.label,
@@ -219,9 +236,17 @@ function SOSContent() {
           </CardContent>
         </Card>
 
-        {/* ─── Section 2: AI ID (If Applicable) ─────────────────── */}
+        {/* ─── Section 2: AI ID or Livestock Profile Creator ─── */}
         {typeId === "venomous_bite" && (
           <OfflineAnimalAI />
+        )}
+
+        {typeId === "sick_livestock" && (
+          <LivestockSelector onChange={setLivestockInfo} />
+        )}
+
+        {typeId === "out_of_fuel" && (
+          <FuelCalculator coordinates={coords} onChange={setFuelRequestInfo} />
         )}
 
         {/* ─── Section 3: Nearby Responders ─────────────────────── */}

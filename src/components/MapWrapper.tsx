@@ -2,12 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
+import { MapResponder } from "./InteractiveMap";
 
-/**
- * Leaflet interacts with the DOM, which causes Next.js server-side rendering
- * to throw "window is not defined" errors. 
- * This wrapper dynamically imports the map component only on the client side.
- */
 const DynamicMap = dynamic(() => import("./InteractiveMap"), {
   ssr: false,
 });
@@ -16,6 +12,8 @@ interface MapWrapperProps {
   routeType: "paved" | "dune";
   start: [number, number];
   end: [number, number];
+  responders?: MapResponder[];
+  endName?: string;
 }
 
 export default function MapWrapper(props: MapWrapperProps) {

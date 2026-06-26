@@ -82,7 +82,6 @@ function SOSPageContent() {
       coords,
       extraInfo
     );
-
     try {
       await queueSosRequest({
         emergencyType: sosType.label,
@@ -96,7 +95,8 @@ function SOSPageContent() {
       setQueued(false);
     }
 
-    window.location.assign(smsLink);
+    // eslint-disable-next-line react-hooks/immutability
+    window.location.href = smsLink;
   };
 
   return (

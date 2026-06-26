@@ -1,5 +1,7 @@
-const CACHE_VERSION = "aounak-offline-v2";
-const RUNTIME_CACHE = "aounak-runtime-v2";
+const CACHE_VERSION = "aounak-offline-v3";
+const RUNTIME_CACHE = "aounak-runtime-v3";
+
+const MODEL_SHARDS = Array.from({ length: 55 }, (_, i) => `/model/group${i + 1}-shard1of1`);
 
 const APP_SHELL = [
   "/",
@@ -11,6 +13,8 @@ const APP_SHELL = [
   "/icons/icon.svg",
   "/icons/maskable.svg",
   "/splash.svg",
+  "/model/model.json",
+  ...MODEL_SHARDS
 ];
 
 const CACHEABLE_DESTINATIONS = new Set([

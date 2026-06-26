@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
+const RESPONSE_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
+
 /**
  * Responder Dashboard — The dispatch center for community volunteers.
  * Shows skill-matched incidents, responder profile, and accept/route actions.
@@ -19,7 +21,7 @@ export default function ResponderDashboard() {
 
   /** Calculate a human-readable "time ago" from an ISO timestamp */
   const timeAgo = (ts: string) => {
-    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    const diff = Math.floor((RESPONSE_NOW - new Date(ts).getTime()) / 60000);
     if (diff < 1) return "Just now";
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;

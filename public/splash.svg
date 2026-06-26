@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" role="img" aria-label="Aounak splash screen">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0c0a1a"/>
+      <stop offset="0.55" stop-color="#111827"/>
+      <stop offset="1" stop-color="#422006"/>
+    </linearGradient>
+  </defs>
+  <rect width="1080" height="1920" fill="url(#bg)"/>
+  <circle cx="540" cy="760" r="210" fill="#111827" stroke="#f59e0b" stroke-width="18"/>
+  <path fill="#f59e0b" d="M540 596 398 655v94c0 83 61 140 142 170 81-30 142-87 142-170v-94L540 596Z"/>
+  <path fill="#0c0a1a" d="M540 638 438 681v67c0 56 39 97 102 123 63-26 102-67 102-123v-67L540 638Z"/>
+  <path fill="#f8fafc" d="M522 676h36v56h56v36h-56v56h-36v-56h-56v-36h56v-56Z"/>
+  <text x="540" y="1068" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="700" text-anchor="middle">Aounak</text>
+  <text x="540" y="1130" fill="#f59e0b" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" text-anchor="middle">Al Qua'a Rapid Response</text>
+  <text x="540" y="1248" fill="#cbd5e1" font-family="Arial, Helvetica, sans-serif" font-size="30" text-anchor="middle">Offline emergency support ready</text>
+</svg>

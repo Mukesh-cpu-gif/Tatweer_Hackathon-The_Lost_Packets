@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aounak app icon">
+  <rect width="512" height="512" rx="108" fill="#0c0a1a"/>
+  <path fill="#f59e0b" d="M256 62 86 132v116c0 99 72 166 170 202 98-36 170-103 170-202V132L256 62Z"/>
+  <path fill="#111827" d="M256 105 126 159v90c0 72 51 124 130 157 79-33 130-85 130-157v-90L256 105Z"/>
+  <path fill="#f8fafc" d="M236 166h40v70h70v40h-70v70h-40v-70h-70v-40h70v-70Z"/>
+  <path fill="#22c55e" d="M162 384c31 28 74 46 94 54 20-8 63-26 94-54-27 15-58 23-94 23s-67-8-94-23Z"/>
+</svg>

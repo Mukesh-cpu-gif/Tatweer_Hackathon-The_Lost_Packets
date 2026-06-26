@@ -43,6 +43,15 @@ const typeIcons: Record<WeatherAlert["type"], string> = {
   flood: "\u{1F30A}",
 };
 
+function formatAlertTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Dubai",
+  }).format(new Date(value));
+}
+
 export default function RiskRadar() {
   /* Track which alerts the user has dismissed */
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -69,6 +78,7 @@ export default function RiskRadar() {
 
       {visibleAlerts.map((alert) => {
         const styles = severityStyles[alert.severity];
+        const expiryText = `Expires: ${formatAlertTime(alert.expiresAt)}`;
 
         return (
           <div
@@ -123,12 +133,8 @@ export default function RiskRadar() {
 
             {/* Expiry countdown line */}
             <div className="mt-2 flex items-center gap-1.5 pl-9">
-              <span className="text-[10px] text-white/40">
-                Expires:{" "}
-                {new Date(alert.expiresAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+              <span className="text-[10px] text-white/40" suppressHydrationWarning>
+                {expiryText}
               </span>
             </div>
 

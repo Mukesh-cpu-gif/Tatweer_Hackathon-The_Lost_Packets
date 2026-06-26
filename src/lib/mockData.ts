@@ -55,6 +55,8 @@ export interface WeatherAlert {
   expiresAt: string;
 }
 
+const MOCK_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
+
 // ─── SOS Categories ────────────────────────────────────────────────
 export const sosTypes: SOSType[] = [
   {
@@ -206,7 +208,7 @@ export const mockIncidents: Incident[] = [
     location: { lat: 23.545, lng: 55.49 },
     status: "pending",
     requiredSkills: ["Winch", "4x4"],
-    timestamp: new Date(Date.now() - 4 * 60000).toISOString(),
+    timestamp: new Date(MOCK_NOW - 4 * 60000).toISOString(),
     requesterName: "Farm Worker (Site 7)",
   },
   {
@@ -215,7 +217,7 @@ export const mockIncidents: Incident[] = [
     location: { lat: 23.53, lng: 55.47 },
     status: "accepted",
     requiredSkills: ["Medical", "Anti-Venom"],
-    timestamp: new Date(Date.now() - 12 * 60000).toISOString(),
+    timestamp: new Date(MOCK_NOW - 12 * 60000).toISOString(),
     requesterName: "Rajesh K.",
     aiClassification: "Arabian Horned Viper (High Confidence)",
   },
@@ -225,7 +227,7 @@ export const mockIncidents: Incident[] = [
     location: { lat: 23.555, lng: 55.485 },
     status: "pending",
     requiredSkills: ["Livestock Expert"],
-    timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
+    timestamp: new Date(MOCK_NOW - 2 * 60000).toISOString(),
     requesterName: "Hamad S.",
   },
 ];
@@ -240,7 +242,7 @@ export const mockWeatherAlerts: WeatherAlert[] = [
     titleAr: "عاصفة رملية قادمة من الغرب",
     description:
       "Expected to reach Al Qua'a within 2 hours. Winds up to 60 km/h. Secure livestock and seek shelter.",
-    expiresAt: new Date(Date.now() + 2 * 3600000).toISOString(),
+    expiresAt: new Date(MOCK_NOW + 2 * 3600000).toISOString(),
   },
   {
     id: "WX-002",
@@ -250,6 +252,6 @@ export const mockWeatherAlerts: WeatherAlert[] = [
     titleAr: "تحذير من حرارة شديدة",
     description:
       "Temperatures expected to reach 52°C. Limit outdoor activity between 11 AM and 4 PM. Ensure water supply for livestock.",
-    expiresAt: new Date(Date.now() + 8 * 3600000).toISOString(),
+    expiresAt: new Date(MOCK_NOW + 8 * 3600000).toISOString(),
   },
 ];

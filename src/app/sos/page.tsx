@@ -7,6 +7,7 @@ import OfflineAnimalAI from "@/components/OfflineAnimalAI";
 import { sosTypes, mockResponders } from "@/lib/mockData";
 import { calculateDistance } from "@/lib/geo";
 import { generateSmsDeepLink } from "@/lib/sms";
+import { queueSosRequest, registerSosSync } from "@/lib/storage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,6 +24,7 @@ function SOSPageContent() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [gpsStatus, setGpsStatus] = useState<"loading" | "success" | "error">("loading");
   const [copied, setCopied] = useState(false);
+  const [queued, setQueued] = useState(false);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -39,10 +41,14 @@ function SOSPageContent() {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      setCoords({ lat: 23.543, lng: 55.487 });
-      setGpsStatus("success");
+      setTimeout(() => {
+        setCoords({ lat: 23.543, lng: 55.487 });
+        setGpsStatus("success");
+      }, 0);
     }
   }, []);
+
+  useEffect(() => registerSosSync(), []);
 
   /** Copy coordinates to clipboard */
   const copyCoords = useCallback(() => {
@@ -66,15 +72,31 @@ function SOSPageContent() {
     : [];
 
   /** Trigger the zero-data SMS fallback */
-  const handleSendSMS = () => {
+  const handleSendSMS = async () => {
     if (!coords) return;
+    const phone = "+971501234567";
+    const extraInfo = sosType.id === "snake_bite" ? "Possible venomous snake" : "";
     const smsLink = generateSmsDeepLink(
-      "+971501234567",
+      phone,
       sosType.label,
       coords,
-      sosType.id === "snake_bite" ? "Possible venomous snake" : ""
+      extraInfo
     );
-    window.location.href = smsLink;
+
+    try {
+      await queueSosRequest({
+        emergencyType: sosType.label,
+        coords,
+        extraInfo,
+        phone,
+        smsBody: decodeURIComponent(smsLink.split("body=")[1] ?? ""),
+      });
+      setQueued(true);
+    } catch {
+      setQueued(false);
+    }
+
+    window.location.assign(smsLink);
   };
 
   return (
@@ -215,7 +237,9 @@ function SOSPageContent() {
           🆘 Send Offline SMS (Zero Data)
         </button>
         <p className="text-center text-xs text-slate-500">
-          Uses native SMS — works with no internet connection
+          {queued
+            ? "SOS saved locally and will sync when data returns"
+            : "Uses native SMS - works with no internet connection"}
         </p>
       </main>
     </div>

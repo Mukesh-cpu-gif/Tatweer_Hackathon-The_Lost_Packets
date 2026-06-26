@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Aounak maskable app icon">
+  <rect width="512" height="512" fill="#0c0a1a"/>
+  <circle cx="256" cy="256" r="226" fill="#111827"/>
+  <path fill="#f59e0b" d="M256 86 102 150v101c0 91 66 153 154 185 88-32 154-94 154-185V150L256 86Z"/>
+  <path fill="#0c0a1a" d="M256 132 144 179v74c0 62 43 106 112 135 69-29 112-73 112-135v-74L256 132Z"/>
+  <path fill="#f8fafc" d="M236 174h40v62h62v40h-62v62h-40v-62h-62v-40h62v-62Z"/>
+</svg>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import RiskRadar from "@/components/RiskRadar";
 import { sosTypes, mockIncidents, type SOSType } from "@/lib/mockData";
@@ -49,24 +49,40 @@ const statusConfig: Record<
 /* Maps SOS category IDs to their data for the incident feed */
 const sosMap = Object.fromEntries(sosTypes.map((s) => [s.id, s]));
 
+function subscribeToNetworkStatus(callback: () => void) {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+}
+
+function getNetworkStatus() {
+  return navigator.onLine;
+}
+
+function getServerNetworkStatus() {
+  return true;
+}
+
+function formatDubaiTime(value: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "Asia/Dubai",
+  }).format(new Date(value));
+}
+
 export default function Home() {
   // ── Online/Offline detection ──────────────────────────────────────
-  const [isOnline, setIsOnline] = useState(true);
-
-  useEffect(() => {
-    // Set initial state from browser API
-    setIsOnline(navigator.onLine);
-
-    const goOnline = () => setIsOnline(true);
-    const goOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", goOnline);
-    window.addEventListener("offline", goOffline);
-    return () => {
-      window.removeEventListener("online", goOnline);
-      window.removeEventListener("offline", goOffline);
-    };
-  }, []);
+  const isOnline = useSyncExternalStore(
+    subscribeToNetworkStatus,
+    getNetworkStatus,
+    getServerNetworkStatus
+  );
 
   // Show most recent 2 incidents for the activity feed
   const recentIncidents = mockIncidents.slice(0, 2);
@@ -218,10 +234,7 @@ export default function Home() {
                         Skills: {incident.requiredSkills.join(", ")}
                       </span>
                       <span>
-                        {new Date(incident.timestamp).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {formatDubaiTime(incident.timestamp)}
                       </span>
                     </div>
 

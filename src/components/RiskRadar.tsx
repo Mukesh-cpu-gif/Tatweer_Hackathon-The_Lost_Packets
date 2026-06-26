@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { mockWeatherAlerts } from "@/lib/mockData";
+import { useState, useEffect } from "react";
+import { subscribeToWeatherAlerts } from "@/lib/db";
+import type { WeatherAlert } from "@/lib/mockData";
 import { AlertTriangle, ShieldAlert, AlertCircle, X } from "lucide-react";
 
 /**
@@ -10,8 +11,16 @@ import { AlertTriangle, ShieldAlert, AlertCircle, X } from "lucide-react";
  */
 export default function RiskRadar() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
 
-  const visibleAlerts = mockWeatherAlerts.filter((a) => !dismissed.has(a.id));
+  useEffect(() => {
+    const unsubscribe = subscribeToWeatherAlerts((liveAlerts) => {
+      setAlerts(liveAlerts);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const visibleAlerts = alerts.filter((a) => !dismissed.has(a.id));
   if (visibleAlerts.length === 0) return null;
 
   const severityStyles = {

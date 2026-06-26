@@ -3,11 +3,12 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
-import { sosTypes, mockResponders } from "@/lib/mockData";
+import { sosTypes } from "@/lib/mockData";
 import { calculateDistance } from "@/lib/geo";
 import { generateSmsDeepLink } from "@/lib/sms";
 import { queueSosRequest, registerSosSync } from "@/lib/storage";
-import { createIncident } from "@/lib/db";
+import { createIncident, subscribeToResponders } from "@/lib/db";
+import type { Responder } from "@/lib/mockData";
 import OfflineAnimalAI from "@/components/OfflineAnimalAI";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ function SOSContent() {
   const [geoError, setGeoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [queued, setQueued] = useState(false);
+  const [responders, setResponders] = useState<Responder[]>([]);
 
   // Hardcoded Al Qua'a mock coords as fallback
   const fallbackCoords = { lat: 23.543, lng: 55.487 };
@@ -56,6 +58,13 @@ function SOSContent() {
 
   useEffect(() => registerSosSync(), []);
 
+  useEffect(() => {
+    const unsubscribe = subscribeToResponders((resps) => {
+      setResponders(resps);
+    });
+    return () => unsubscribe();
+  }, []);
+
   if (!sosType) {
     return (
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center text-zinc-400">
@@ -70,7 +79,7 @@ function SOSContent() {
 
   // Calculate nearby responders
   const respondersWithDistance = coords
-    ? mockResponders
+    ? responders
         .filter((r) => r.available && r.skills.some((s) => sosType.requiredSkills.includes(s)))
         .map((r) => ({
           ...r,

@@ -6,7 +6,9 @@ import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import RiskRadar from "@/components/RiskRadar";
-import { sosTypes, mockIncidents } from "@/lib/mockData";
+import { sosTypes } from "@/lib/mockData";
+import type { Incident } from "@/lib/mockData";
+import { subscribeToIncidents } from "@/lib/db";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ function getServerNetworkStatus() {
 export default function Home() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
+  const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
 
   // ── Auth Check ────────────────────────────────────────────────────
   useEffect(() => {
@@ -59,6 +62,14 @@ export default function Home() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // ── Live Incidents ────────────────────────────────────────────────
+  useEffect(() => {
+    const unsubscribe = subscribeToIncidents((incidents) => {
+      setRecentIncidents(incidents.slice(0, 2));
+    });
+    return () => unsubscribe();
+  }, []);
 
   // ── Online/Offline detection ──────────────────────────────────────
   const isOnline = useSyncExternalStore(
@@ -172,50 +183,54 @@ export default function Home() {
             </h2>
           </div>
           <div className="space-y-4">
-            {mockIncidents.slice(0, 2).map((inc) => {
-              const sosType = sosTypes.find((s) => s.id === inc.type);
-              const Icon = sosType?.lucideIconName && iconMap[sosType.lucideIconName] ? iconMap[sosType.lucideIconName] : Activity;
-              
-              return (
-                <Card key={inc.id} className="border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md rounded-2xl shadow-none hover:-translate-y-1 hover:border-t-indigo-500/30 transition-all duration-500">
-                  <CardContent className="pt-5 pb-5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-2.5 rounded-full bg-zinc-950/50 border border-zinc-800">
-                           <Icon size={20} strokeWidth={1.5} className="text-indigo-400" />
+            {recentIncidents.length === 0 ? (
+               <p className="text-zinc-500 text-sm font-medium">No recent incidents recorded.</p>
+            ) : (
+              recentIncidents.map((inc) => {
+                const sosType = sosTypes.find((s) => s.id === inc.type);
+                const Icon = sosType?.lucideIconName && iconMap[sosType.lucideIconName] ? iconMap[sosType.lucideIconName] : Activity;
+                
+                return (
+                  <Card key={inc.id} className="border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md rounded-2xl shadow-none hover:-translate-y-1 hover:border-t-indigo-500/30 transition-all duration-500">
+                    <CardContent className="pt-5 pb-5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 rounded-full bg-zinc-950/50 border border-zinc-800">
+                             <Icon size={20} strokeWidth={1.5} className="text-indigo-400" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-zinc-200 text-sm tracking-wide uppercase">
+                              {sosType?.label || inc.type}
+                            </p>
+                            <p className="text-xs text-indigo-200/50 font-medium mt-0.5">
+                              {inc.requesterName} · {timeAgo(inc.timestamp)}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-semibold text-zinc-200 text-sm tracking-wide uppercase">
-                            {sosType?.label}
-                          </p>
-                          <p className="text-xs text-indigo-200/50 font-medium mt-0.5">
-                            {inc.requesterName} · {timeAgo(inc.timestamp)}
-                          </p>
+                        <Badge
+                          variant="outline"
+                          className={
+                            inc.status === "pending"
+                              ? "bg-amber-950/30 border-amber-500/30 text-amber-400 font-medium animate-pulse"
+                              : "bg-emerald-950/30 border-emerald-500/30 text-emerald-400 font-medium"
+                          }
+                        >
+                          {inc.status}
+                        </Badge>
+                      </div>
+                      {inc.aiClassification && (
+                        <div className="mt-4 flex items-center gap-2.5 bg-indigo-950/30 border border-indigo-500/20 rounded-xl px-3.5 py-2.5">
+                          <BrainCircuit size={16} strokeWidth={1.5} className="text-indigo-400" />
+                          <span className="text-indigo-300 text-xs font-medium tracking-wider uppercase">
+                            AI Match: {inc.aiClassification}
+                          </span>
                         </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={
-                          inc.status === "pending"
-                            ? "bg-amber-950/30 border-amber-500/30 text-amber-400 font-medium animate-pulse"
-                            : "bg-emerald-950/30 border-emerald-500/30 text-emerald-400 font-medium"
-                        }
-                      >
-                        {inc.status}
-                      </Badge>
-                    </div>
-                    {inc.aiClassification && (
-                      <div className="mt-4 flex items-center gap-2.5 bg-indigo-950/30 border border-indigo-500/20 rounded-xl px-3.5 py-2.5">
-                        <BrainCircuit size={16} strokeWidth={1.5} className="text-indigo-400" />
-                        <span className="text-indigo-300 text-xs font-medium tracking-wider uppercase">
-                          AI Match: {inc.aiClassification}
-                        </span>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </section>
       </main>
@@ -247,3 +262,4 @@ export default function Home() {
     </div>
   );
 }
+

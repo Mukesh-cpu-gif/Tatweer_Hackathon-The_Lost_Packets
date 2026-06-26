@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 import { onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
-import { mockIncidents as fallbackMockIncidents, sosTypes, Incident } from "@/lib/mockData";
+import { sosTypes, Incident } from "@/lib/mockData";
 import { subscribeToIncidents, acceptIncident } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,7 +49,7 @@ export default function ResponderDashboard() {
   useEffect(() => {
     if (!user) return; // Only subscribe if logged in
     const unsubscribe = subscribeToIncidents((incidents) => {
-      setLiveIncidents(incidents.length > 0 ? incidents : fallbackMockIncidents);
+      setLiveIncidents(incidents);
     });
     return () => unsubscribe();
   }, [user]);

@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import MapWrapper from "@/components/MapWrapper";
 import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass, Maximize2, X, AlertTriangle } from "lucide-react";
-import { mockIncidents, mockResponders } from "@/lib/mockData";
+import { getIncidentById } from "@/lib/db";
+import type { Incident } from "@/lib/mockData";
 
 /**
  * Route Comparison Content — Handles Geolocation, Fallbacks, and Map Rendering
@@ -22,13 +23,22 @@ function MapContent() {
 
   const [responderCoords, setResponderCoords] = useState<[number, number] | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
+  const [incident, setIncident] = useState<Incident | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Find incident from URL param
-  const incident = mockIncidents.find(inc => inc.id === incidentId) || mockIncidents[0];
-  const incidentCoords: [number, number] = [incident.location.lat, incident.location.lng];
+  // Fallback coords if GPS fails (Al Qua'a Center)
+  const fallbackResponderCoords: [number, number] = [23.543, 55.487];
 
-  // Mock fallback for responder
-  const fallbackResponderCoords: [number, number] = [mockResponders[0].location.lat, mockResponders[0].location.lng];
+  useEffect(() => {
+    if (incidentId) {
+      getIncidentById(incidentId).then(inc => {
+        setIncident(inc);
+        setLoading(false);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [incidentId]);
 
   useEffect(() => {
     if ("geolocation" in navigator) {
@@ -38,7 +48,7 @@ function MapContent() {
         },
         (error) => {
           console.error("Geo error:", error);
-          setGeoError("GPS blocked or unavailable. Using mock responder location.");
+          setGeoError("GPS blocked or unavailable. Using default Al Qua'a location.");
           setResponderCoords(fallbackResponderCoords);
         },
         { enableHighAccuracy: true, timeout: 5000 }
@@ -55,6 +65,23 @@ function MapContent() {
     else document.body.style.overflow = "auto";
     return () => { document.body.style.overflow = "auto"; };
   }, [fullscreenMap]);
+
+  if (loading) {
+    return <div className="p-8 text-center text-zinc-400 uppercase tracking-widest text-sm animate-pulse">Fetching Incident Coordinates...</div>;
+  }
+
+  if (!incident) {
+    return (
+      <div className="p-8 text-center">
+        <p className="text-zinc-400 mb-4">Incident Not Found</p>
+        <Link href="/responder">
+          <Button variant="outline" className="border-zinc-700">Return to Dispatch</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const incidentCoords: [number, number] = [incident.location.lat, incident.location.lng];
 
   return (
     <>

@@ -5,11 +5,11 @@ import { Coordinates } from "./geo";
  * and a set of required responder skills.
  */
 export type SOSCategory =
-  | "snake_bite"
+  | "venomous_bite"
   | "medical"
   | "vehicle_stuck"
   | "sick_livestock"
-  | "scorpion_sting"
+  | "out_of_fuel"
   | "water_emergency";
 
 export interface SOSType {
@@ -68,19 +68,19 @@ const MOCK_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
 // ─── SOS Categories ────────────────────────────────────────────────
 export const sosTypes: SOSType[] = [
   {
-    id: "snake_bite",
-    label: "Snake Bite",
-    labelAr: "لدغة أفعى",
-    icon: "🐍",
-    lucideIconName: "Activity",
-    description: "Venomous snake bite requiring immediate anti-venom",
+    id: "venomous_bite",
+    label: "Venomous Threat",
+    labelAr: "تهديد سام",
+    icon: "🦂",
+    lucideIconName: "Bug",
+    description: "Snake bite or scorpion sting requiring immediate anti-venom",
     requiredSkills: ["Medical", "Anti-Venom"],
     firstAid: [
-      "Keep the bitten area still and below heart level.",
-      "Do NOT apply a tourniquet or ice.",
-      "Remove any jewelry near the bite before swelling starts.",
-      "Note the time of the bite for responders.",
-      "If possible, photograph the snake from a safe distance.",
+      "Keep the affected area still and below heart level.",
+      "Wash the area with soap and water if possible.",
+      "Do NOT apply a tourniquet, ice, or cut the wound.",
+      "Note the time of the bite/sting for responders.",
+      "If possible, photograph the creature from a safe distance.",
     ],
     color: "from-red-600 to-red-800",
     styleConfig: {
@@ -92,26 +92,25 @@ export const sosTypes: SOSType[] = [
     },
   },
   {
-    id: "scorpion_sting",
-    label: "Scorpion Sting",
-    labelAr: "لدغة عقرب",
-    icon: "🦂",
-    lucideIconName: "Bug",
-    description: "Scorpion sting — may require anti-venom",
-    requiredSkills: ["Medical"],
+    id: "out_of_fuel",
+    label: "Out of Fuel",
+    labelAr: "نفاد الوقود",
+    icon: "⛽",
+    lucideIconName: "Activity",
+    description: "Vehicle stranded without fuel in the desert",
+    requiredSkills: ["Transport", "Fuel Supply", "4x4"],
     firstAid: [
-      "Wash the area with soap and water.",
-      "Apply a cold compress to reduce swelling.",
-      "Keep the person calm and still.",
-      "Do NOT cut the wound or try to suck the venom.",
+      "Stay with your vehicle — do NOT attempt to walk to find fuel.",
+      "Turn on hazard lights or use a reflective surface.",
+      "Conserve water and stay in the shade of the vehicle.",
     ],
-    color: "from-orange-600 to-red-700",
+    color: "from-blue-600 to-indigo-800",
     styleConfig: {
-      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-orange-950/20 hover:border-t-orange-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-indigo-950/20 hover:border-t-indigo-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
       border: "border-zinc-800/50",
       text: "text-zinc-200",
-      hoverBg: "hover:bg-orange-950/20",
-      iconColor: "text-orange-500",
+      hoverBg: "hover:bg-indigo-950/20",
+      iconColor: "text-indigo-500",
     },
   },
   {
@@ -269,7 +268,7 @@ export const mockIncidents: Incident[] = [
   },
   {
     id: "INC-1043",
-    type: "snake_bite",
+    type: "venomous_bite",
     location: { lat: 23.53, lng: 55.47 },
     status: "accepted",
     requiredSkills: ["Medical", "Anti-Venom"],

@@ -52,7 +52,7 @@ export default function ResponderDashboard() {
             </Link>
             <div>
               <h1 className="text-xl font-bold tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400">
-                Faza'a Dispatch
+                Aounak Dispatch
               </h1>
               <p className="text-indigo-200/50 text-[10px] tracking-widest uppercase font-medium">
                 Responder Network

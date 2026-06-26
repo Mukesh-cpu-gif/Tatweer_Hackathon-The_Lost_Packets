@@ -91,7 +91,7 @@ function SOSContent() {
   const handleOfflineSms = async () => {
     if (!coords) return;
     const phone = "+971501234567";
-    const extraInfo = sosType.id === "snake_bite" ? "Possible venomous snake" : "";
+    const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
     const smsLink = generateSmsDeepLink(
       phone,
       sosType.label,
@@ -191,7 +191,7 @@ function SOSContent() {
         </Card>
 
         {/* ─── Section 2: AI ID (If Applicable) ─────────────────── */}
-        {(typeId === "snake_bite" || typeId === "scorpion_sting") && (
+        {typeId === "venomous_bite" && (
           <OfflineAnimalAI />
         )}
 

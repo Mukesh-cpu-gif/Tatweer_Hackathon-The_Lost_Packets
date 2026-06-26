@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet } from "lucide-react";
+import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel } from "lucide-react";
 
 const RESPONSE_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
 
@@ -20,7 +20,7 @@ const RESPONSE_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
  */
 
 const iconMap: Record<string, React.ElementType> = {
-  Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet
+  Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel
 };
 
 export default function ResponderDashboard() {

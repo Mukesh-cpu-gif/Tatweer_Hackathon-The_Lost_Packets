@@ -96,7 +96,7 @@ export const sosTypes: SOSType[] = [
     label: "Out of Fuel",
     labelAr: "نفاد الوقود",
     icon: "⛽",
-    lucideIconName: "Activity",
+    lucideIconName: "Fuel",
     description: "Vehicle stranded without fuel in the desert",
     requiredSkills: ["Transport", "Fuel Supply", "4x4"],
     firstAid: [

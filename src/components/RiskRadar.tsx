@@ -6,8 +6,7 @@ import { AlertTriangle, ShieldAlert, AlertCircle, X } from "lucide-react";
 
 /**
  * RiskRadar — Proactive weather alert system for Al Qua'a.
- * Displays severity-coded dismissible alerts with Arabic + English titles.
- * Uses ultra-modern Dark Mode Glassmorphism UI.
+ * Stargazer Deep Space Theme.
  */
 export default function RiskRadar() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -16,9 +15,9 @@ export default function RiskRadar() {
   if (visibleAlerts.length === 0) return null;
 
   const severityStyles = {
-    warning: "border-amber-500/30 bg-amber-500/10 text-amber-200",
-    danger: "border-red-500/30 bg-red-500/10 text-red-200",
-    critical: "border-rose-500/40 bg-rose-500/20 text-rose-100 animate-pulse",
+    warning: "border-amber-500/30 bg-amber-950/20 text-amber-200 hover:border-t-amber-400/50 shadow-[0_0_20px_rgba(245,158,11,0.05)]",
+    danger: "border-orange-500/30 bg-orange-950/20 text-orange-200 hover:border-t-orange-400/50 shadow-[0_0_20px_rgba(249,115,22,0.05)]",
+    critical: "border-rose-500/40 bg-rose-950/30 text-rose-100 animate-[pulse_3s_ease-in-out_infinite] hover:border-t-rose-400/60 shadow-[0_0_30px_rgba(244,63,94,0.15)]",
   };
 
   const IconMap = {
@@ -28,17 +27,17 @@ export default function RiskRadar() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {visibleAlerts.map((alert) => {
         const Icon = IconMap[alert.severity];
         return (
           <div
             key={alert.id}
-            className={`relative rounded-xl border p-4 backdrop-blur-lg transition-all duration-300 ${severityStyles[alert.severity]}`}
+            className={`relative rounded-xl border border-zinc-800/50 backdrop-blur-md p-4 transition-all duration-500 ease-out hover:-translate-y-1 ${severityStyles[alert.severity]}`}
           >
             <button
               onClick={() => setDismissed((prev) => new Set(prev).add(alert.id))}
-              className="absolute top-3 right-3 text-white/40 hover:text-white/80 transition-colors"
+              className="absolute top-3 right-3 text-white/30 hover:text-white/80 transition-colors"
               aria-label="Dismiss alert"
             >
               <X size={18} strokeWidth={1.5} />
@@ -46,17 +45,17 @@ export default function RiskRadar() {
 
             <div className="flex items-start gap-3 pr-8">
               <div className="mt-0.5">
-                <Icon size={24} strokeWidth={1.5} className="opacity-90" />
+                <Icon size={22} strokeWidth={1.5} className="opacity-90" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-xs uppercase tracking-widest opacity-60">
+                  <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">
                     {alert.type}
                   </span>
                 </div>
-                <p className="font-semibold text-base tracking-tight">{alert.title}</p>
-                <p className="text-sm opacity-60 mt-0.5 font-medium" dir="rtl">{alert.titleAr}</p>
-                <p className="text-sm mt-2 opacity-80 leading-relaxed">{alert.description}</p>
+                <p className="font-semibold text-sm tracking-wide uppercase">{alert.title}</p>
+                <p className="text-xs opacity-60 mt-0.5 font-medium" dir="rtl">{alert.titleAr}</p>
+                <p className="text-sm mt-2 opacity-70 leading-relaxed">{alert.description}</p>
               </div>
             </div>
           </div>

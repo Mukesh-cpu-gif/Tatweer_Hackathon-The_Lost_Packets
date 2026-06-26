@@ -1,227 +1,169 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Camera, RefreshCw, AlertTriangle, Cpu, Info } from "lucide-react";
 
-/**
- * Mock classification results for on-device AI animal identification.
- * In production, this would use a TensorFlow.js MobileNet model
- * loaded from IndexedDB for fully offline inference.
- */
-interface ClassificationResult {
+type AIResult = {
   species: string;
   confidence: number;
-  dangerLevel: "extreme" | "high" | "low";
-  dangerColor: string;
+  dangerLevel: "critical" | "high" | "low";
   action: string;
-}
+};
 
-const MOCK_RESULTS: ClassificationResult[] = [
+const MOCK_RESULTS: AIResult[] = [
   {
     species: "Arabian Horned Viper",
     confidence: 92,
-    dangerLevel: "extreme",
-    dangerColor: "bg-red-600 text-white",
-    action: "Do NOT move. Keep bitten area below heart level. Anti-venom required — responder alerted.",
+    dangerLevel: "critical",
+    action: "Do not move. Anti-venom required immediately.",
   },
   {
     species: "Deathstalker Scorpion",
     confidence: 87,
     dangerLevel: "high",
-    dangerColor: "bg-orange-500 text-white",
-    action: "Wash sting with soap & water. Apply cold compress. Monitor for severe reaction.",
+    action: "Apply cold compress. Medical attention needed.",
   },
   {
-    species: "Arabian Sand Boa - Non-venomous",
+    species: "Arabian Sand Boa",
     confidence: 95,
     dangerLevel: "low",
-    dangerColor: "bg-green-600 text-white",
-    action: "Non-venomous species. Clean any wound. No anti-venom needed.",
+    action: "Non-venomous. Wash wound thoroughly.",
   },
 ];
 
+/**
+ * OfflineAnimalAI — Deep Space Aesthetic
+ */
 export default function OfflineAnimalAI() {
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [result, setResult] = useState<ClassificationResult | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [result, setResult] = useState<AIResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Handle image capture from camera or gallery.
-   * Creates a local preview URL and triggers the simulated AI pipeline.
-   */
   const handleImageCapture = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage(reader.result as string);
+        simulateAIScan();
+      };
+      reader.readAsDataURL(file);
+    }
+  }, []);
 
-    // Generate a local blob URL for the preview (works offline)
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
+  const simulateAIScan = () => {
+    setIsScanning(true);
     setResult(null);
-    setIsAnalyzing(true);
-
-    // Simulate on-device TensorFlow.js inference with a realistic 2-second delay
+    
     setTimeout(() => {
       const randomResult = MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)];
       setResult(randomResult);
-      setIsAnalyzing(false);
+      setIsScanning(false);
     }, 2000);
-  }, []);
+  };
 
-  /** Reset the component to scan another specimen */
-  const handleReset = useCallback(() => {
-    setImagePreview(null);
+  const resetCapture = () => {
+    setImage(null);
     setResult(null);
-    setIsAnalyzing(false);
-    // Reset file input so the same image can be re-selected
+    setIsScanning(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
+  };
+
+  const dangerColors = {
+    critical: "bg-rose-950/40 text-rose-400 border-rose-500/30",
+    high: "bg-orange-950/40 text-orange-400 border-orange-500/30",
+    low: "bg-emerald-950/40 text-emerald-400 border-emerald-500/30",
+  };
 
   return (
-    <Card className="border-amber-500/30 bg-gradient-to-br from-slate-900 to-slate-800">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-amber-400">
-          <span className="text-2xl">🧬</span>
-          Offline Animal AI
+    <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none relative overflow-hidden group">
+      <div className="absolute inset-0 bg-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <CardHeader className="pb-3 border-b border-zinc-800/50">
+        <CardTitle className="flex items-center gap-2 text-sm font-bold tracking-widest uppercase text-indigo-400">
+          <Cpu size={16} />
+          Offline Threat ID
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Take a photo of the snake or scorpion for instant species identification.
-        </p>
       </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* ── Camera Capture Button ─────────────────────────────── */}
-        {!imagePreview && (
-          <label
-            htmlFor="animal-capture"
-            className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-950/20 p-6 transition-all hover:border-amber-400 hover:bg-amber-950/40 active:scale-[0.98]"
+      
+      <CardContent className="pt-4 space-y-4">
+        {!image ? (
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full h-40 border-2 border-dashed border-zinc-700/50 hover:border-indigo-500/50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all duration-300 bg-zinc-950/50 hover:bg-indigo-950/20 group/btn"
           >
-            {/* Camera icon (SVG for offline reliability) */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="size-12 text-amber-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={1.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
-              />
-            </svg>
-            <span className="text-base font-semibold text-amber-300">
-              📷 Capture &amp; Identify
-            </span>
-            <span className="text-xs text-muted-foreground">
-              Tap to open camera or select photo
-            </span>
-            {/* Hidden file input — accept image, prefer rear camera */}
+            <Camera size={32} strokeWidth={1} className="text-zinc-500 group-hover/btn:text-indigo-400 mb-2 transition-colors duration-300" />
+            <p className="text-sm font-medium tracking-wide text-zinc-400 uppercase">Tap to identify species</p>
             <input
-              ref={fileInputRef}
-              id="animal-capture"
               type="file"
               accept="image/*"
               capture="environment"
               className="hidden"
+              ref={fileInputRef}
               onChange={handleImageCapture}
             />
-          </label>
-        )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="relative w-full h-48 rounded-xl overflow-hidden bg-zinc-950 border border-zinc-800/50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image} alt="Captured specimen" className="w-full h-full object-cover opacity-60" />
+              
+              {isScanning && (
+                <div className="absolute inset-0 bg-indigo-950/40 flex flex-col items-center justify-center backdrop-blur-sm">
+                  <div className="w-16 h-16 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin absolute" />
+                  <div className="w-8 h-8 rounded-full bg-indigo-500/20 animate-pulse absolute" />
+                  <Cpu size={20} className="text-indigo-300 animate-pulse" />
+                  <p className="mt-8 text-xs font-bold tracking-widest uppercase text-indigo-300 animate-pulse">Running Neural Net...</p>
+                </div>
+              )}
+            </div>
 
-        {/* ── Image Preview ────────────────────────────────────── */}
-        {imagePreview && (
-          <div className="relative overflow-hidden rounded-xl border border-amber-500/30">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={imagePreview}
-              alt="Captured specimen"
-              className="h-48 w-full object-cover"
-            />
-            {/* Scanning overlay animation while AI is processing */}
-            {isAnalyzing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-                {/* Pulsing scan ring */}
-                <div className="size-16 animate-ping rounded-full border-4 border-amber-400/50" />
-                <p className="mt-4 text-sm font-semibold text-amber-300 animate-pulse">
-                  Analyzing with on-device AI…
-                </p>
+            {result && (
+              <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="font-semibold text-lg text-zinc-100 tracking-wide">{result.species}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 rounded-full" 
+                          style={{ width: `${result.confidence}%` }} 
+                        />
+                      </div>
+                      <span className="text-[10px] text-zinc-400 font-mono">{result.confidence}% Match</span>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={`${dangerColors[result.dangerLevel]} uppercase tracking-widest text-[10px] font-bold`}>
+                    {result.dangerLevel}
+                  </Badge>
+                </div>
+
+                <div className="bg-amber-950/20 border border-amber-900/30 p-3 rounded-xl flex gap-2.5">
+                  <AlertTriangle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-200/80 leading-relaxed">{result.action}</p>
+                </div>
+
+                <Button 
+                  onClick={resetCapture}
+                  variant="outline" 
+                  className="w-full border-zinc-700/50 bg-zinc-900/50 hover:bg-zinc-800 text-zinc-300 tracking-wide uppercase text-xs h-10 mt-2"
+                >
+                  <RefreshCw size={14} className="mr-2" /> Scan Another
+                </Button>
               </div>
             )}
           </div>
         )}
-
-        {/* ── Classification Results ───────────────────────────── */}
-        {result && (
-          <div className="space-y-3 rounded-xl border border-amber-500/20 bg-slate-800/80 p-4 animate-in fade-in duration-500">
-            {/* Species & Confidence */}
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Species Identified
-                </p>
-                <p className="text-lg font-bold text-white">
-                  {result.species}
-                </p>
-              </div>
-              <Badge className={result.dangerColor}>
-                {result.dangerLevel === "extreme"
-                  ? "☠️ EXTREME"
-                  : result.dangerLevel === "high"
-                  ? "⚠️ HIGH"
-                  : "✅ LOW"}
-              </Badge>
-            </div>
-
-            {/* Confidence bar */}
-            <div>
-              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>Confidence</span>
-                <span className="font-mono font-bold text-amber-400">
-                  {result.confidence}%
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-700">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-1000"
-                  style={{ width: `${result.confidence}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Recommended action */}
-            <div className="rounded-lg bg-slate-900/60 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">
-                Recommended Action
-              </p>
-              <p className="mt-1 text-sm text-slate-200">
-                {result.action}
-              </p>
-            </div>
-
-            {/* Scan again button */}
-            <button
-              onClick={handleReset}
-              className="mt-2 w-full rounded-lg border border-amber-500/30 py-2.5 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/10 active:scale-[0.98]"
-            >
-              🔄 Scan Another Specimen
-            </button>
-          </div>
-        )}
       </CardContent>
-
-      {/* ── Footer: Offline AI branding ──────────────────────── */}
-      <CardFooter className="justify-center">
-        <p className="text-center text-xs text-muted-foreground">
-          ⚡ Powered by on-device TensorFlow.js — works without internet
-        </p>
+      <CardFooter className="bg-zinc-950/50 border-t border-zinc-800/50 p-3 flex items-center justify-center gap-1.5">
+        <Info size={12} className="text-zinc-600" />
+        <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+          Powered by on-device TensorFlow.js
+        </span>
       </CardFooter>
     </Card>
   );

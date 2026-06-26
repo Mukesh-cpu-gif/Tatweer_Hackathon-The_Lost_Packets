@@ -94,6 +94,14 @@ function MapContent() {
           </div>
         )}
 
+        {/* Post-Deployment Notice Banner */}
+        <div className="bg-indigo-950/20 border border-indigo-500/30 rounded-xl p-3 flex items-start gap-3">
+          <Compass size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+          <p className="text-indigo-200/80 text-xs font-medium tracking-wide leading-relaxed">
+            <strong>Post-Deployment Note:</strong> Advanced hardware features (Live Compass Direct Bearing and Real-Time Mobile GPS tracking) require a secure HTTPS connection and will be completed once the project is deployed.
+          </p>
+        </div>
+
         {/* ─── Summary Card ────────────────────────────────────── */}
         <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">

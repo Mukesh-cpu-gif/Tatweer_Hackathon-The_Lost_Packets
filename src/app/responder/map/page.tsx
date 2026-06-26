@@ -1,213 +1,255 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import MapWrapper from "@/components/MapWrapper";
+import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass, Maximize2, X, AlertTriangle } from "lucide-react";
+import { mockIncidents, mockResponders } from "@/lib/mockData";
 
 /**
- * Mock Dune vs. Paved Route Comparison Page.
- * Demonstrates how Aounak's off-road routing saves critical time
- * compared to standard paved-road navigation algorithms.
+ * Route Comparison Content — Handles Geolocation, Fallbacks, and Map Rendering
  */
-export default function RouteMapPage() {
+function MapContent() {
+  const searchParams = useSearchParams();
+  const incidentId = searchParams.get("incidentId");
+
+  const [navigating, setNavigating] = useState(false);
+  const [fullscreenMap, setFullscreenMap] = useState<"paved" | "dune" | null>(null);
+
+  const [responderCoords, setResponderCoords] = useState<[number, number] | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  // Find incident from URL param
+  const incident = mockIncidents.find(inc => inc.id === incidentId) || mockIncidents[0];
+  const incidentCoords: [number, number] = [incident.location.lat, incident.location.lng];
+
+  // Mock fallback for responder
+  const fallbackResponderCoords: [number, number] = [mockResponders[0].location.lat, mockResponders[0].location.lng];
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setResponderCoords([position.coords.latitude, position.coords.longitude]);
+        },
+        (error) => {
+          console.error("Geo error:", error);
+          setGeoError("GPS blocked or unavailable. Using mock responder location.");
+          setResponderCoords(fallbackResponderCoords);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      setGeoError("Geolocation not supported by device.");
+      setResponderCoords(fallbackResponderCoords);
+    }
+  }, []);
+
+  // Prevent scroll when fullscreen
+  useEffect(() => {
+    if (fullscreenMap) document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "auto";
+    return () => { document.body.style.overflow = "auto"; };
+  }, [fullscreenMap]);
+
   return (
-    <div className="min-h-screen bg-background pb-8">
-      {/* ─── Header ─────────────────────────────────────────────── */}
-      <header className="border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-lg">
-        <div className="px-5 py-4 flex items-center gap-3">
-          <Link
-            href="/responder"
-            className="text-slate-400 hover:text-white transition-colors text-sm"
-          >
-            ← Back
-          </Link>
-          <div>
-            <h1 className="text-white font-bold">Route Comparison</h1>
-            <p className="text-xs text-slate-400">Incident INC-1042 · Vehicle Stuck</p>
+    <>
+      {/* ─── Header ──────────────────────────────────────────── */}
+      <header className="sticky top-0 z-40 bg-zinc-950/40 backdrop-blur-xl border-b border-zinc-800/50">
+        <div className="px-5 py-4 max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/responder">
+              <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-white/5 -ml-2 rounded-full h-10 w-10 p-0">
+                <ChevronLeft size={24} strokeWidth={1.5} />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400">
+                Route Analysis
+              </h1>
+              <p className="text-indigo-200/50 text-[10px] tracking-widest uppercase font-medium">
+                Dune vs Paved Comparison
+              </p>
+            </div>
           </div>
+          <Badge variant="outline" className="bg-indigo-950/30 border-indigo-500/30 text-indigo-300 font-bold tracking-widest text-[10px] uppercase">
+            ID: {incident.id}
+          </Badge>
         </div>
       </header>
 
-      <main className="px-5 py-6 space-y-6 max-w-2xl mx-auto">
-        {/* ─── Route Comparison Cards ───────────────────────────── */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Standard Road Route (slow) */}
-          <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm overflow-hidden">
-            <div className="h-1 bg-slate-500" />
-            <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-slate-300">Standard Road</h3>
-                <Badge variant="outline" className="border-slate-500 text-slate-400">
-                  Google Maps
-                </Badge>
-              </div>
+      <main className="relative z-10 px-5 py-6 space-y-6 max-w-2xl mx-auto">
+        
+        {/* Geo Warning Banner */}
+        {geoError && (
+          <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-amber-200/80 text-xs font-medium tracking-wide leading-relaxed">
+              {geoError} This happens on local networks or if permissions are denied.
+            </p>
+          </div>
+        )}
 
-              {/* Mock route visualization */}
-              <div className="relative h-36 bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden">
-                <svg className="w-full h-full" viewBox="0 0 300 120">
-                  {/* Dashed path showing the long road route */}
-                  <path
-                    d="M 20,100 Q 60,90 80,60 Q 100,30 140,40 Q 180,50 220,30 Q 260,10 280,20"
-                    fill="none"
-                    stroke="#64748b"
-                    strokeWidth="3"
-                    strokeDasharray="8,6"
-                    opacity="0.6"
-                  />
-                  {/* Start point */}
-                  <circle cx="20" cy="100" r="6" fill="#64748b" />
-                  <text x="28" y="96" fontSize="8" fill="#94a3b8">You</text>
-                  {/* End point */}
-                  <circle cx="280" cy="20" r="6" fill="#ef4444" />
-                  <text x="255" y="16" fontSize="8" fill="#94a3b8">SOS</text>
-                </svg>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-slate-500">Distance</p>
-                  <p className="text-xl font-bold text-slate-300">38 km</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">ETA</p>
-                  <p className="text-xl font-bold text-slate-300">47 min</p>
-                </div>
-              </div>
-              <p className="text-xs text-slate-500">
-                ⚠ Follows paved highway — loops around the entire dune belt
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Aounak Dune Route (fast) */}
-          <Card className="border-amber-500/30 bg-gradient-to-br from-amber-950/30 to-slate-800/50 backdrop-blur-sm overflow-hidden ring-1 ring-amber-500/20">
-            <div className="h-1 bg-gradient-to-r from-amber-500 to-amber-400" />
-            <CardContent className="pt-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-amber-300">Aounak Dune Route</h3>
-                <Badge className="bg-amber-600/80 text-amber-100">
-                  ⚡ Recommended
-                </Badge>
-              </div>
-
-              {/* Mock route visualization */}
-              <div className="relative h-36 bg-slate-900/60 rounded-xl border border-amber-500/20 overflow-hidden">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
-                <svg className="w-full h-full" viewBox="0 0 300 120">
-                  {/* Solid path showing the direct dune route */}
-                  <path
-                    d="M 20,100 Q 80,80 150,60 Q 220,40 280,20"
-                    fill="none"
-                    stroke="url(#goldGradient)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                  <defs>
-                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#fbbf24" />
-                    </linearGradient>
-                  </defs>
-                  {/* Animated dot traveling along the route */}
-                  <circle r="4" fill="#fbbf24">
-                    <animateMotion
-                      dur="3s"
-                      repeatCount="indefinite"
-                      path="M 20,100 Q 80,80 150,60 Q 220,40 280,20"
-                    />
-                  </circle>
-                  {/* Start point */}
-                  <circle cx="20" cy="100" r="6" fill="#f59e0b" />
-                  <text x="28" y="96" fontSize="8" fill="#fbbf24">You</text>
-                  {/* End point */}
-                  <circle cx="280" cy="20" r="6" fill="#ef4444">
-                    <animate
-                      attributeName="r"
-                      values="6;8;6"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                  <text x="255" y="16" fontSize="8" fill="#fbbf24">SOS</text>
-                </svg>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-amber-500/70">Distance</p>
-                  <p className="text-xl font-bold text-amber-300">4.2 km</p>
-                </div>
-                <div>
-                  <p className="text-xs text-amber-500/70">ETA</p>
-                  <p className="text-xl font-bold text-amber-300">12 min</p>
-                </div>
-              </div>
-              <p className="text-xs text-amber-400/70">
-                ⚡ Direct off-road path through accessible dune corridors
-              </p>
-            </CardContent>
-          </Card>
+        {/* Post-Deployment Notice Banner */}
+        <div className="bg-indigo-950/20 border border-indigo-500/30 rounded-xl p-3 flex items-start gap-3">
+          <Compass size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+          <p className="text-indigo-200/80 text-xs font-medium tracking-wide leading-relaxed">
+            <strong>Post-Deployment Note:</strong> Advanced hardware features (Live Compass Direct Bearing and Real-Time Mobile GPS tracking) require a secure HTTPS connection and will be completed once the project is deployed.
+          </p>
         </div>
 
-        {/* ─── Savings Summary ──────────────────────────────────── */}
-        <Card className="border-green-500/30 bg-green-950/20 backdrop-blur-sm">
-          <CardContent className="pt-5 space-y-3">
-            <h3 className="font-bold text-green-300 text-center text-lg">
-              Aounak saves 35 minutes
-            </h3>
-            <p className="text-sm text-green-200/70 text-center">
-              By routing through accessible dune paths instead of the paved highway
-              detour — critical minutes in a desert emergency.
+        {/* ─── Summary Card ────────────────────────────────────── */}
+        <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+          <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <span className="text-lg font-bold text-emerald-400">35m</span>
+          </div>
+          <div>
+            <h3 className="text-emerald-300 text-sm font-bold tracking-widest uppercase mb-1">Massive Time Save</h3>
+            <p className="text-emerald-200/70 text-xs font-medium leading-relaxed tracking-wide">
+              Aounak saves 35 minutes by routing through accessible dune paths instead of standard highway detours.
             </p>
-            <div className="grid grid-cols-3 gap-3 pt-2">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-400">74%</p>
-                <p className="text-xs text-green-400/60">Faster</p>
+          </div>
+        </div>
+
+        {!responderCoords ? (
+          <div className="h-64 flex flex-col items-center justify-center bg-zinc-900/20 border border-zinc-800/30 rounded-2xl border-dashed">
+            <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-3" />
+            <p className="text-zinc-500 text-sm font-medium tracking-wide">Acquiring GPS Signal...</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* ─── Standard Road Route ────────────────────────────── */}
+            <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
+              <CardHeader className="pb-3 border-b border-zinc-800/50 bg-zinc-950/30">
+                <CardTitle className="text-xs font-bold tracking-widest uppercase text-zinc-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Route size={16} /> Standard Road Route</div>
+                  <button onClick={() => setFullscreenMap("paved")} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                    <Maximize2 size={16} />
+                  </button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-zinc-400">
+                    <Timer size={16} />
+                    <span className="font-mono text-sm">47 mins</span>
+                  </div>
+                  <Badge variant="outline" className="bg-zinc-900/50 border-zinc-700 text-zinc-400 text-[10px] tracking-widest uppercase">
+                    38 km
+                  </Badge>
+                </div>
+
+                <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-zinc-800/50 overflow-hidden group">
+                  <MapWrapper routeType="paved" start={responderCoords} end={incidentCoords} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* ─── Aounak Dune Route ──────────────────────────────── */}
+            <Card className="bg-zinc-900/40 backdrop-blur-md border border-amber-500/30 shadow-[0_0_30px_rgba(245,158,11,0.05)] relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent pointer-events-none" />
+              <CardHeader className="pb-3 border-b border-amber-900/30 bg-amber-950/10 relative z-10">
+                <CardTitle className="text-xs font-bold tracking-widest uppercase text-amber-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2"><Compass size={16} /> Aounak Dune Route</div>
+                  <button onClick={() => setFullscreenMap("dune")} className="text-amber-500/70 hover:text-amber-300 transition-colors">
+                    <Maximize2 size={16} />
+                  </button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-amber-300">
+                    <Timer size={16} />
+                    <span className="font-mono text-xl font-bold">12 mins</span>
+                  </div>
+                  <Badge variant="outline" className="bg-amber-950/40 border-amber-500/30 text-amber-400 text-[10px] tracking-widest uppercase shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                    4.2 km
+                  </Badge>
+                </div>
+
+                <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-amber-500/30 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
+                  <MapWrapper routeType="dune" start={responderCoords} end={incidentCoords} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* ─── Navigation Details ─────────────────────────────── */}
+        <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-full bg-zinc-950 border border-zinc-800/50">
+                <MapIcon size={20} className="text-indigo-400" strokeWidth={1.5} />
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-400">33.8 km</p>
-                <p className="text-xs text-green-400/60">Shorter</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-green-400">4x4</p>
-                <p className="text-xs text-green-400/60">Required</p>
+              <div>
+                <p className="text-[10px] font-bold tracking-widest uppercase text-zinc-500 mb-0.5">Your Position</p>
+                <p className="font-mono text-zinc-300 text-sm tracking-tight">
+                  {responderCoords ? `${responderCoords[0].toFixed(4)}°, ${responderCoords[1].toFixed(4)}°` : "---"}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* ─── Waypoint Details ─────────────────────────────────── */}
-        <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm">
-          <CardContent className="pt-5 space-y-3">
-            <h3 className="font-bold text-white">Waypoint Details</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-slate-500">Start (Your Location)</p>
-                <p className="font-mono text-slate-300">23.5410°N, 55.4890°E</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">End (Incident)</p>
-                <p className="font-mono text-slate-300">23.5450°N, 55.4900°E</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Terrain</p>
-                <p className="text-slate-300">Packed sand + soft dune crossing</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500">Vehicle Clearance</p>
-                <p className="text-slate-300">High clearance 4x4 recommended</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* ─── Start Navigation Button ──────────────────────────── */}
-        <Button className="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold text-lg py-6 rounded-2xl shadow-lg shadow-amber-500/20 transition-all duration-200 active:scale-95">
-          🧭 Start Navigation
-        </Button>
+        {/* ─── Action Button ────────────────────────────────────── */}
+        <div className="pt-4 pb-8">
+          <Button 
+            onClick={() => setNavigating(true)}
+            className={`w-full h-14 rounded-xl font-bold tracking-widest uppercase text-sm transition-all duration-500 ${
+              navigating 
+                ? "bg-emerald-900/40 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)]" 
+                : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)]"
+            }`}
+          >
+            {navigating ? (
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                Navigating Dune Route...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <Navigation2 size={18} strokeWidth={2} />
+                Start Off-Road Navigation
+              </span>
+            )}
+          </Button>
+        </div>
       </main>
+
+      {/* ─── Fullscreen Map Modal ──────────────────────────────── */}
+      {fullscreenMap && responderCoords && (
+        <div className="fixed inset-0 z-[100] bg-zinc-950 flex flex-col">
+          <div className="p-4 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800/50 flex justify-between items-center absolute top-0 left-0 right-0 z-10">
+            <h2 className={`font-bold tracking-widest uppercase text-xs ${fullscreenMap === "dune" ? "text-amber-400" : "text-zinc-300"}`}>
+              {fullscreenMap === "dune" ? "Aounak Dune Route" : "Standard Road Route"}
+            </h2>
+            <Button variant="ghost" size="icon" onClick={() => setFullscreenMap(null)} className="text-zinc-400 hover:text-white hover:bg-zinc-800">
+              <X size={24} />
+            </Button>
+          </div>
+          <div className="flex-1 w-full h-full pt-14">
+            <MapWrapper routeType={fullscreenMap} start={responderCoords} end={incidentCoords} />
+          </div>
+        </div>
+      )}
+
+    </>
+  );
+}
+
+export default function MapComparison() {
+  return (
+    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
+      {/* ─── Cosmic Nebulas ───────────────────────────────────── */}
+      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest">Loading Route Data...</div>}>
+        <MapContent />
+      </Suspense>
     </div>
   );
 }

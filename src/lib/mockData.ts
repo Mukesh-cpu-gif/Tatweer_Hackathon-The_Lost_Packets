@@ -17,10 +17,18 @@ export interface SOSType {
   label: string;
   labelAr: string;
   icon: string;
+  lucideIconName?: string;
   description: string;
   requiredSkills: string[];
   firstAid: string[];
   color: string;
+  styleConfig?: {
+    bg: string;
+    border: string;
+    text: string;
+    hoverBg: string;
+    iconColor: string;
+  };
 }
 
 export interface Responder {
@@ -64,6 +72,7 @@ export const sosTypes: SOSType[] = [
     label: "Snake Bite",
     labelAr: "لدغة أفعى",
     icon: "🐍",
+    lucideIconName: "Activity",
     description: "Venomous snake bite requiring immediate anti-venom",
     requiredSkills: ["Medical", "Anti-Venom"],
     firstAid: [
@@ -74,12 +83,20 @@ export const sosTypes: SOSType[] = [
       "If possible, photograph the snake from a safe distance.",
     ],
     color: "from-red-600 to-red-800",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-rose-950/20 hover:border-t-rose-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(244,63,94,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-rose-950/20",
+      iconColor: "text-rose-500",
+    },
   },
   {
     id: "scorpion_sting",
     label: "Scorpion Sting",
     labelAr: "لدغة عقرب",
     icon: "🦂",
+    lucideIconName: "Bug",
     description: "Scorpion sting — may require anti-venom",
     requiredSkills: ["Medical"],
     firstAid: [
@@ -89,12 +106,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT cut the wound or try to suck the venom.",
     ],
     color: "from-orange-600 to-red-700",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-orange-950/20 hover:border-t-orange-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(249,115,22,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-orange-950/20",
+      iconColor: "text-orange-500",
+    },
   },
   {
     id: "medical",
     label: "Medical Assist",
     labelAr: "مساعدة طبية",
     icon: "🏥",
+    lucideIconName: "HeartPulse",
     description: "General medical emergency or heatstroke",
     requiredSkills: ["Medical", "First Aid"],
     firstAid: [
@@ -104,12 +129,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT give water to an unconscious person.",
     ],
     color: "from-rose-600 to-pink-800",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-pink-950/20 hover:border-t-pink-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(236,72,153,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-pink-950/20",
+      iconColor: "text-pink-500",
+    },
   },
   {
     id: "vehicle_stuck",
     label: "Vehicle Stuck",
     labelAr: "مركبة عالقة",
     icon: "🚜",
+    lucideIconName: "Tractor",
     description: "Vehicle stuck in sand or broken down in the desert",
     requiredSkills: ["Winch", "4x4", "Heavy Machinery"],
     firstAid: [
@@ -119,12 +152,20 @@ export const sosTypes: SOSType[] = [
       "Use a reflective surface to signal for help during daylight.",
     ],
     color: "from-amber-600 to-yellow-800",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-amber-950/20 hover:border-t-amber-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(251,191,36,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-amber-950/20",
+      iconColor: "text-amber-500",
+    },
   },
   {
     id: "sick_livestock",
     label: "Sick Livestock",
     labelAr: "مواشي مريضة",
     icon: "🐪",
+    lucideIconName: "Stethoscope",
     description: "Camel or livestock medical emergency",
     requiredSkills: ["Livestock Expert", "Veterinary"],
     firstAid: [
@@ -134,12 +175,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT administer medication without vet guidance.",
     ],
     color: "from-amber-700 to-orange-900",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-yellow-950/20 hover:border-t-yellow-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(250,204,21,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-yellow-950/20",
+      iconColor: "text-yellow-500",
+    },
   },
   {
     id: "water_emergency",
     label: "Water Emergency",
     labelAr: "طوارئ مياه",
     icon: "💧",
+    lucideIconName: "Droplet",
     description: "Water pump failure or supply cut-off",
     requiredSkills: ["Plumbing", "Heavy Machinery"],
     firstAid: [
@@ -148,6 +197,13 @@ export const sosTypes: SOSType[] = [
       "Contact your nearest neighbor for emergency supply.",
     ],
     color: "from-blue-600 to-cyan-800",
+    styleConfig: {
+      bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-sky-950/20 hover:border-t-sky-400/50 hover:border-r-transparent hover:border-b-transparent hover:border-l-transparent hover:shadow-[0_0_30px_rgba(56,189,248,0.15)] hover:-translate-y-1.5 transition-all duration-500 ease-out",
+      border: "border-zinc-800/50",
+      text: "text-zinc-200",
+      hoverBg: "hover:bg-sky-950/20",
+      iconColor: "text-sky-500",
+    },
   },
 ];
 

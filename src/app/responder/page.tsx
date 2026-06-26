@@ -4,14 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
 import { mockIncidents as fallbackMockIncidents, sosTypes, Incident } from "@/lib/mockData";
 import { subscribeToIncidents, acceptIncident } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel } from "lucide-react";
+import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel, LogOut } from "lucide-react";
 
 const RESPONSE_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
 
@@ -53,6 +53,15 @@ export default function ResponderDashboard() {
     });
     return () => unsubscribe();
   }, [user]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
+  };
 
   const handleAccept = async (id: string) => {
     try {
@@ -129,17 +138,29 @@ export default function ResponderDashboard() {
                   </div>
                 </div>
               </div>
-              {/* Availability Toggle */}
-              <button 
-                onClick={() => setIsAvailable(!isAvailable)}
-                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                  isAvailable ? 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'bg-zinc-700/50'
-                }`}
-              >
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${
-                  isAvailable ? 'translate-x-8' : 'translate-x-1'
-                }`} />
-              </button>
+              {/* Availability Toggle and Logout */}
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsAvailable(!isAvailable)}
+                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
+                    isAvailable ? 'bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]' : 'bg-zinc-700/50'
+                  }`}
+                  title="Toggle Availability"
+                >
+                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${
+                    isAvailable ? 'translate-x-8' : 'translate-x-1'
+                  }`} />
+                </button>
+                <Button 
+                  onClick={handleLogout} 
+                  variant="ghost" 
+                  size="icon" 
+                  className="text-zinc-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-full h-8 w-8"
+                  title="Log Out"
+                >
+                  <LogOut size={16} />
+                </Button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="bg-indigo-950/20 border-indigo-500/30 text-indigo-300 font-medium tracking-wide">Medical</Badge>

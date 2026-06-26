@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Copy, CheckCircle2, ChevronLeft, Send, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet } from "lucide-react";
+import LivestockSelector from "@/components/LivestockSelector";
+import FuelCalculator from "@/components/FuelCalculator";
 
 const iconMap: Record<string, React.ElementType> = {
   Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet
@@ -49,6 +51,8 @@ export default function SOSClient() {
   );
   const [copied, setCopied] = useState(false);
   const [queued, setQueued] = useState(false);
+  const [livestockInfo, setLivestockInfo] = useState<string>("");
+  const [fuelRequestInfo, setFuelRequestInfo] = useState<string>("");
   const [responders, setResponders] = useState<Responder[]>([]);
 
   useEffect(() => {
@@ -111,7 +115,14 @@ export default function SOSClient() {
     if (!coords) return;
     setQueued(true);
     try {
-      const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
+      let extraInfo = "";
+      if (sosType.id === "venomous_bite") {
+        extraInfo = "Possible venomous creature";
+      } else if (sosType.id === "sick_livestock") {
+        extraInfo = livestockInfo || "Sick livestock reported";
+      } else if (sosType.id === "out_of_fuel") {
+        extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+      }
       await createIncident(sosType.id, coords, "Emergency Requester", extraInfo);
       setTimeout(() => setQueued(false), 2000);
       alert("SOS Sent to Dispatch Successfully!");
@@ -124,7 +135,14 @@ export default function SOSClient() {
   const handleOfflineSms = async () => {
     if (!coords) return;
     const phone = "+971501234567";
-    const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
+    let extraInfo = "";
+    if (sosType.id === "venomous_bite") {
+      extraInfo = "Possible venomous creature";
+    } else if (sosType.id === "sick_livestock") {
+      extraInfo = livestockInfo || "Sick livestock reported";
+    } else if (sosType.id === "out_of_fuel") {
+      extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+    }
     const smsLink = generateSmsDeepLink(
       phone,
       sosType.label,
@@ -218,6 +236,14 @@ export default function SOSClient() {
 
         {typeId === "venomous_bite" && (
           <OfflineAnimalAI />
+        )}
+
+        {typeId === "sick_livestock" && (
+          <LivestockSelector onChange={setLivestockInfo} />
+        )}
+
+        {typeId === "out_of_fuel" && (
+          <FuelCalculator coordinates={coords} onChange={setFuelRequestInfo} />
         )}
 
         <div className="space-y-4">

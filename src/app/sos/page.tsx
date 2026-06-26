@@ -39,8 +39,10 @@ function SOSPageContent() {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      setCoords({ lat: 23.543, lng: 55.487 });
-      setGpsStatus("success");
+      setTimeout(() => {
+        setCoords({ lat: 23.543, lng: 55.487 });
+        setGpsStatus("success");
+      }, 0);
     }
   }, []);
 
@@ -74,6 +76,7 @@ function SOSPageContent() {
       coords,
       sosType.id === "snake_bite" ? "Possible venomous snake" : ""
     );
+    // eslint-disable-next-line react-hooks/immutability
     window.location.href = smsLink;
   };
 

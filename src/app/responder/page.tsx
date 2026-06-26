@@ -17,9 +17,11 @@ export default function ResponderDashboard() {
   const currentResponder = mockResponders[0];
   const [isAvailable, setIsAvailable] = useState(currentResponder.available);
 
+  const [now] = useState(() => Date.now());
+
   /** Calculate a human-readable "time ago" from an ISO timestamp */
   const timeAgo = (ts: string) => {
-    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    const diff = Math.floor((now - new Date(ts).getTime()) / 60000);
     if (diff < 1) return "Just now";
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;

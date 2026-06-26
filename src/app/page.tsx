@@ -51,12 +51,14 @@ const sosMap = Object.fromEntries(sosTypes.map((s) => [s.id, s]));
 
 export default function Home() {
   // ── Online/Offline detection ──────────────────────────────────────
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(() => {
+    if (typeof window !== "undefined") {
+      return navigator.onLine;
+    }
+    return true;
+  });
 
   useEffect(() => {
-    // Set initial state from browser API
-    setIsOnline(navigator.onLine);
-
     const goOnline = () => setIsOnline(true);
     const goOffline = () => setIsOnline(false);
 

@@ -1,13 +1,17 @@
+const MODEL_SHARDS = Array.from({ length: 55 }, (_, i) => `/model/group${i + 1}-shard1of1`);
+const CACHE_ASSETS = [
+  "/",
+  "/sos",
+  "/manifest.json",
+  "/favicon.ico",
+  "/model/model.json",
+  ...MODEL_SHARDS
+];
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open("aounak-v1").then((cache) => {
-      return cache.addAll([
-        "/",
-        "/sos",
-        "/manifest.json",
-        "/favicon.ico"
-        // add tensor flow model weights and other static assets here later
-      ]);
+      return cache.addAll(CACHE_ASSETS);
     })
   );
 });

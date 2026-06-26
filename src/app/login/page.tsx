@@ -92,7 +92,7 @@ export default function LoginPage() {
             </div>
 
             <Button 
-              onClick={handleMockLogin}
+              onClick={() => alert("Phone login Phase 2")}
               disabled={loading}
               variant="outline"
               className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
@@ -102,7 +102,7 @@ export default function LoginPage() {
             </Button>
 
             <Button 
-              onClick={handleMockLogin}
+              onClick={() => alert("Email login Phase 2")}
               disabled={loading}
               variant="outline"
               className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"

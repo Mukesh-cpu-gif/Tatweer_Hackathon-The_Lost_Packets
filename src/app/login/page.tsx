@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChevronLeft, Phone, Mail, Shield, AlertCircle } from "lucide-react";
-import { auth } from "@/lib/firebase";
+import { auth, isFirebaseConfigured, missingFirebaseEnv } from "@/lib/firebase";
+import { FirebaseError } from "firebase/app";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
@@ -20,11 +21,37 @@ import Link from "next/link";
 
 declare global {
   interface Window {
-    recaptchaVerifier: any;
+    recaptchaVerifier?: RecaptchaVerifier;
   }
 }
 
 type AuthMode = "default" | "email" | "phone" | "otp";
+const AUTH_TIMEOUT_MS = 15000;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  return error instanceof Error ? error.message : fallback;
+};
+
+const hasAuthCode = (error: unknown, codes: string[]) => {
+  return error instanceof FirebaseError && codes.includes(error.code);
+};
+
+const withAuthTimeout = async <T,>(operation: Promise<T>, message: string) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), AUTH_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,17 +68,23 @@ export default function LoginPage() {
   // Phone Auth Object
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
+  const canUseFirebaseAuth = isFirebaseConfigured && !loading;
+
   // ─── Google Auth ─────────────────────────────────────────────────────────
   const handleGoogleLogin = async () => {
+    if (!isFirebaseConfigured) return;
     setLoading(true);
     setError(null);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      await withAuthTimeout(
+        signInWithPopup(auth, provider),
+        "Firebase sign-in did not respond. Check Firebase config and authorized domains."
+      );
       router.push("/responder");
-    } catch (err: any) {
-      console.error("Login failed", err);
-      setError(err.message || "Failed to sign in with Google.");
+    } catch (error: unknown) {
+      console.error("Login failed", error);
+      setError(getErrorMessage(error, "Failed to sign in with Google."));
       setLoading(false);
     }
   };
@@ -59,24 +92,31 @@ export default function LoginPage() {
   // ─── Email & Password Auth ──────────────────────────────────────────────
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured) return;
     setLoading(true);
     setError(null);
     try {
       // First try to sign in
-      await signInWithEmailAndPassword(auth, email, password);
+      await withAuthTimeout(
+        signInWithEmailAndPassword(auth, email, password),
+        "Firebase sign-in did not respond. Check Firebase config and authorized domains."
+      );
       router.push("/responder");
-    } catch (err: any) {
+    } catch (error: unknown) {
       // If user not found, auto-create account for hackathon purposes
-      if (err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+      if (hasAuthCode(error, ["auth/user-not-found", "auth/invalid-credential"])) {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
+          await withAuthTimeout(
+            createUserWithEmailAndPassword(auth, email, password),
+            "Firebase account creation did not respond. Check Firebase config and authorized domains."
+          );
           router.push("/responder");
-        } catch (createErr: any) {
-          setError(createErr.message || "Failed to create account.");
+        } catch (createError: unknown) {
+          setError(getErrorMessage(createError, "Failed to create account."));
           setLoading(false);
         }
       } else {
-        setError(err.message || "Authentication failed.");
+        setError(getErrorMessage(error, "Authentication failed."));
         setLoading(false);
       }
     }
@@ -85,24 +125,33 @@ export default function LoginPage() {
   // ─── Phone Auth (Step 1: Send SMS) ───────────────────────────────────────
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFirebaseConfigured) return;
     setLoading(true);
     setError(null);
 
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible'
-      });
-    }
-
     try {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+          size: "invisible",
+        });
+      }
+
+      const verifier = window.recaptchaVerifier;
+      if (!verifier) {
+        throw new Error("Could not initialize phone verification.");
+      }
+
       // Format number ensuring it has a + prefix
       const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-      const confirmation = await signInWithPhoneNumber(auth, formattedNumber, window.recaptchaVerifier);
+      const confirmation = await withAuthTimeout(
+        signInWithPhoneNumber(auth, formattedNumber, verifier),
+        "Firebase phone sign-in did not respond. Check phone auth and authorized domains."
+      );
       setConfirmationResult(confirmation);
       setAuthMode("otp");
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Failed to send SMS code.");
+    } catch (error: unknown) {
+      console.error(error);
+      setError(getErrorMessage(error, "Failed to send SMS code."));
     }
     setLoading(false);
   };
@@ -115,9 +164,12 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      await confirmationResult.confirm(otp);
+      await withAuthTimeout(
+        confirmationResult.confirm(otp),
+        "Firebase OTP verification did not respond. Check phone auth and authorized domains."
+      );
       router.push("/responder");
-    } catch (err: any) {
+    } catch {
       setError("Invalid verification code.");
       setLoading(false);
     }
@@ -128,7 +180,7 @@ export default function LoginPage() {
     <>
       <Button 
         onClick={handleGoogleLogin}
-        disabled={loading}
+        disabled={!canUseFirebaseAuth}
         className="w-full h-12 bg-white text-zinc-950 hover:bg-zinc-200 font-semibold tracking-wide"
       >
         <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
@@ -148,7 +200,7 @@ export default function LoginPage() {
 
       <Button 
         onClick={() => setAuthMode("phone")}
-        disabled={loading}
+        disabled={!canUseFirebaseAuth}
         variant="outline"
         className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
       >
@@ -158,7 +210,7 @@ export default function LoginPage() {
 
       <Button 
         onClick={() => setAuthMode("email")}
-        disabled={loading}
+        disabled={!canUseFirebaseAuth}
         variant="outline"
         className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
       >
@@ -188,7 +240,7 @@ export default function LoginPage() {
           className="bg-zinc-950/50 border-zinc-700 text-white h-12"
         />
       </div>
-      <Button type="submit" disabled={loading} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
+      <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
         {loading ? "Authenticating..." : "Sign In / Register"}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setAuthMode("default")} className="w-full text-zinc-400 hover:text-white">
@@ -211,7 +263,7 @@ export default function LoginPage() {
         <p className="text-xs text-zinc-500 px-1">Include country code (e.g., +971)</p>
       </div>
       <div id="recaptcha-container"></div>
-      <Button type="submit" disabled={loading} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
+      <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
         {loading ? "Sending SMS..." : "Send Verification Code"}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setAuthMode("default")} className="w-full text-zinc-400 hover:text-white">
@@ -233,7 +285,7 @@ export default function LoginPage() {
           className="bg-zinc-950/50 border-zinc-700 text-white h-12 text-center text-lg tracking-[0.5em]"
         />
       </div>
-      <Button type="submit" disabled={loading} className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-wider">
+      <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-wider">
         {loading ? "Verifying..." : "Verify & Sign In"}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setAuthMode("phone")} className="w-full text-zinc-400 hover:text-white">
@@ -293,6 +345,15 @@ export default function LoginPage() {
               <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-start gap-2">
                 <AlertCircle size={16} className="text-rose-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-rose-300/90">{error}</p>
+              </div>
+            )}
+
+            {!isFirebaseConfigured && (
+              <div className="mb-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-start gap-2">
+                <AlertCircle size={16} className="text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-amber-200/90">
+                  Firebase is missing {missingFirebaseEnv.length} required environment value{missingFirebaseEnv.length === 1 ? "" : "s"}. Add them to <span className="font-mono">.env.local</span> and restart the dev server.
+                </p>
               </div>
             )}
 

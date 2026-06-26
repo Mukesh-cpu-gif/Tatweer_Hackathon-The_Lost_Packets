@@ -4,7 +4,7 @@ import { useSyncExternalStore, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import RiskRadar from "@/components/RiskRadar";
 import { sosTypes } from "@/lib/mockData";
 import type { Incident } from "@/lib/mockData";
@@ -49,17 +49,29 @@ function getServerNetworkStatus() {
 export default function Home() {
   const router = useRouter();
   const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
+  const [now] = useState(() => Date.now());
 
   // ── Auth Check ────────────────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (!currentUser) {
-        router.push("/login");
-      } else {
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (currentUser) => {
+        setUser(currentUser);
         setAuthLoading(false);
+
+        if (!currentUser) {
+          router.replace("/login");
+        }
+      },
+      (error) => {
+        console.error("Auth state check failed", error);
+        setUser(null);
+        setAuthLoading(false);
+        router.replace("/login");
       }
-    });
+    );
     return () => unsubscribe();
   }, [router]);
 
@@ -79,7 +91,7 @@ export default function Home() {
   );
 
   const timeAgo = (ts: string) => {
-    const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+    const diff = Math.floor((now - new Date(ts).getTime()) / 60000);
     if (diff < 1) return "Just now";
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;
@@ -90,6 +102,15 @@ export default function Home() {
       <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
         <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Loading Aounak...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
+        <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Redirecting to login...</p>
       </div>
     );
   }

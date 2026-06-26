@@ -1,0 +1,62 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasValidResponderProfile() {
+      return request.resource.data.keys().hasOnly([
+          'name',
+          'phone',
+          'vehicleType',
+          'skills',
+          'available',
+          'location',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() > 0
+        && request.resource.data.vehicleType is string
+        && request.resource.data.vehicleType.size() > 0
+        && request.resource.data.skills is list
+        && request.resource.data.skills.size() > 0
+        && request.resource.data.available is bool
+        && (
+          !request.resource.data.keys().hasAny(['location'])
+          || (
+            request.resource.data.location.lat is number
+            && request.resource.data.location.lng is number
+          )
+        );
+    }
+
+    match /responders/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && hasValidResponderProfile();
+      allow delete: if false;
+    }
+
+    match /incidents/{incidentId} {
+      allow read, create: if signedIn();
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['pending', 'accepted', 'resolved'];
+      allow delete: if false;
+    }
+
+    match /weatherAlerts/{alertId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

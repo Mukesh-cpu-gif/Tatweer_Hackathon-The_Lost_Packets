@@ -11,6 +11,12 @@ import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass, Maximi
 import { getIncidentById } from "@/lib/db";
 import type { Incident } from "@/lib/mockData";
 
+const fallbackResponderCoords: [number, number] = [23.543, 55.487];
+
+const hasBrowserGeolocation = () => {
+  return typeof navigator !== "undefined" && "geolocation" in navigator;
+};
+
 /**
  * Route Comparison Content — Handles Geolocation, Fallbacks, and Map Rendering
  */
@@ -21,42 +27,50 @@ function MapContent() {
   const [navigating, setNavigating] = useState(false);
   const [fullscreenMap, setFullscreenMap] = useState<"paved" | "dune" | null>(null);
 
-  const [responderCoords, setResponderCoords] = useState<[number, number] | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
-  const [incident, setIncident] = useState<Incident | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Fallback coords if GPS fails (Al Qua'a Center)
-  const fallbackResponderCoords: [number, number] = [23.543, 55.487];
+  const [responderCoords, setResponderCoords] = useState<[number, number] | null>(() =>
+    hasBrowserGeolocation() ? null : fallbackResponderCoords
+  );
+  const [geoError, setGeoError] = useState<string | null>(() =>
+    hasBrowserGeolocation() ? null : "Geolocation not supported by device."
+  );
+  const [incidentLookup, setIncidentLookup] = useState<{ id: string; incident: Incident | null } | null>(null);
 
   useEffect(() => {
-    if (incidentId) {
-      getIncidentById(incidentId).then(inc => {
-        setIncident(inc);
-        setLoading(false);
+    if (!incidentId) return;
+
+    let active = true;
+    getIncidentById(incidentId)
+      .then((nextIncident) => {
+        if (active) {
+          setIncidentLookup({ id: incidentId, incident: nextIncident });
+        }
+      })
+      .catch((error) => {
+        console.error("Incident lookup failed", error);
+        if (active) {
+          setIncidentLookup({ id: incidentId, incident: null });
+        }
       });
-    } else {
-      setLoading(false);
-    }
+
+    return () => {
+      active = false;
+    };
   }, [incidentId]);
 
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setResponderCoords([position.coords.latitude, position.coords.longitude]);
-        },
-        (error) => {
-          console.error("Geo error:", error);
-          setGeoError("GPS blocked or unavailable. Using default Al Qua'a location.");
-          setResponderCoords(fallbackResponderCoords);
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    } else {
-      setGeoError("Geolocation not supported by device.");
-      setResponderCoords(fallbackResponderCoords);
-    }
+    if (!hasBrowserGeolocation()) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setResponderCoords([position.coords.latitude, position.coords.longitude]);
+      },
+      (error) => {
+        console.error("Geo error:", error);
+        setGeoError("GPS blocked or unavailable. Using fallback Al Qua'a location.");
+        setResponderCoords(fallbackResponderCoords);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
   }, []);
 
   // Prevent scroll when fullscreen
@@ -65,6 +79,9 @@ function MapContent() {
     else document.body.style.overflow = "auto";
     return () => { document.body.style.overflow = "auto"; };
   }, [fullscreenMap]);
+
+  const loading = Boolean(incidentId && incidentLookup?.id !== incidentId);
+  const incident = incidentLookup?.id === incidentId ? incidentLookup.incident : null;
 
   if (loading) {
     return <div className="p-8 text-center text-zinc-400 uppercase tracking-widest text-sm animate-pulse">Fetching Incident Coordinates...</div>;

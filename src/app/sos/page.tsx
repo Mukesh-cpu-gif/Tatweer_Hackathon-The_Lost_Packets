@@ -23,37 +23,41 @@ const iconMap: Record<string, React.ElementType> = {
   Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet
 };
 
+const fallbackCoords = { lat: 23.543, lng: 55.487 };
+
+const hasBrowserGeolocation = () => {
+  return typeof navigator !== "undefined" && "geolocation" in navigator;
+};
+
 function SOSContent() {
   const searchParams = useSearchParams();
   const typeId = searchParams.get("type");
   const sosType = sosTypes.find((t) => t.id === typeId);
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() =>
+    hasBrowserGeolocation() ? null : fallbackCoords
+  );
+  const [geoError, setGeoError] = useState<string | null>(() =>
+    hasBrowserGeolocation() ? null : "Geolocation not supported. Using fallback coordinates."
+  );
   const [copied, setCopied] = useState(false);
   const [queued, setQueued] = useState(false);
   const [responders, setResponders] = useState<Responder[]>([]);
 
-  // Hardcoded Al Qua'a mock coords as fallback
-  const fallbackCoords = { lat: 23.543, lng: 55.487 };
-
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-        },
-        (error) => {
-          console.error("Geo error:", error);
-          setGeoError("Using mock Al Qua'a coordinates.");
-          setCoords(fallbackCoords);
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
-    } else {
-      setGeoError("Geolocation not supported. Using mock coords.");
-      setCoords(fallbackCoords);
-    }
+    if (!hasBrowserGeolocation()) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+      },
+      (error) => {
+        console.error("Geo error:", error);
+        setGeoError("Using fallback Al Qua'a coordinates.");
+        setCoords(fallbackCoords);
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
   }, []);
 
   useEffect(() => registerSosSync(), []);

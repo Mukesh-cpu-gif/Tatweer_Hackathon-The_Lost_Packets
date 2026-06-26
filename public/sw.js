@@ -1,5 +1,5 @@
-const CACHE_VERSION = "aounak-offline-v3";
-const RUNTIME_CACHE = "aounak-runtime-v3";
+const CACHE_VERSION = "aounak-offline-v5";
+const RUNTIME_CACHE = "aounak-runtime-v5";
 
 const MODEL_SHARDS = Array.from({ length: 55 }, (_, i) => `/model/group${i + 1}-shard1of1`);
 
@@ -54,12 +54,19 @@ async function cacheFirst(request) {
   const cached = await caches.match(request);
   if (cached) return cached;
 
-  const response = await fetch(request);
-  if (response.ok) {
-    const cache = await caches.open(RUNTIME_CACHE);
-    cache.put(request, response.clone());
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      await cache.put(request, response.clone()).catch(() => undefined);
+    }
+    return response;
+  } catch {
+    return new Response("", {
+      status: 504,
+      statusText: "Offline asset unavailable",
+    });
   }
-  return response;
 }
 
 async function networkFirst(request) {
@@ -68,12 +75,16 @@ async function networkFirst(request) {
   try {
     const response = await fetch(request);
     if (response.ok) {
-      cache.put(request, response.clone());
+      await cache.put(request, response.clone()).catch(() => undefined);
     }
     return response;
   } catch {
     const cached = await caches.match(request);
-    return cached || caches.match("/");
+    const shell = await caches.match("/");
+    return cached || shell || new Response("Aounak is offline.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   }
 }
 

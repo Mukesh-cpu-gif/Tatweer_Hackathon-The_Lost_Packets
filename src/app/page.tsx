@@ -1,13 +1,16 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import RiskRadar from "@/components/RiskRadar";
 import { sosTypes, mockIncidents } from "@/lib/mockData";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, BrainCircuit, ArrowRight } from "lucide-react";
+import { Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, BrainCircuit, ArrowRight, Fuel } from "lucide-react";
 
 /**
  * Aounak Dashboard — Deep Space & Stargazing Theme
@@ -20,6 +23,7 @@ const iconMap: Record<string, React.ElementType> = {
   Tractor,
   Stethoscope,
   Droplet,
+  Fuel,
 };
 
 function subscribeToNetworkStatus(callback: () => void) {
@@ -41,6 +45,21 @@ function getServerNetworkStatus() {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // ── Auth Check ────────────────────────────────────────────────────
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (!currentUser) {
+        router.push("/login");
+      } else {
+        setAuthLoading(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [router]);
+
   // ── Online/Offline detection ──────────────────────────────────────
   const isOnline = useSyncExternalStore(
     subscribeToNetworkStatus,
@@ -54,6 +73,15 @@ export default function Home() {
     if (diff < 60) return `${diff}m ago`;
     return `${Math.floor(diff / 60)}h ago`;
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
+        <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Loading Aounak...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">

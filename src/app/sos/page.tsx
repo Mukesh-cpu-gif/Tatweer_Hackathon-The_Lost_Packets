@@ -7,6 +7,7 @@ import { sosTypes, mockResponders } from "@/lib/mockData";
 import { calculateDistance } from "@/lib/geo";
 import { generateSmsDeepLink } from "@/lib/sms";
 import { queueSosRequest, registerSosSync } from "@/lib/storage";
+import { createIncident } from "@/lib/db";
 import OfflineAnimalAI from "@/components/OfflineAnimalAI";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -87,11 +88,26 @@ function SOSContent() {
     }
   };
 
+  const handleLiveSos = async () => {
+    if (!coords) return;
+    setQueued(true); // Treat as pending/sending
+    try {
+      const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
+      await createIncident(sosType.id, coords, "Emergency Requester", extraInfo);
+      // Wait a moment then show success
+      setTimeout(() => setQueued(false), 2000);
+      alert("SOS Sent to Dispatch Successfully!");
+    } catch (err) {
+      console.error("Live SOS failed, falling back to SMS", err);
+      handleOfflineSms();
+    }
+  };
+
   /** Trigger the zero-data SMS fallback */
   const handleOfflineSms = async () => {
     if (!coords) return;
     const phone = "+971501234567";
-    const extraInfo = sosType.id === "snake_bite" ? "Possible venomous snake" : "";
+    const extraInfo = sosType.id === "venomous_bite" ? "Possible venomous creature" : "";
     const smsLink = generateSmsDeepLink(
       phone,
       sosType.label,
@@ -191,7 +207,7 @@ function SOSContent() {
         </Card>
 
         {/* ─── Section 2: AI ID (If Applicable) ─────────────────── */}
-        {(typeId === "snake_bite" || typeId === "scorpion_sting") && (
+        {typeId === "venomous_bite" && (
           <OfflineAnimalAI />
         )}
 
@@ -256,8 +272,22 @@ function SOSContent() {
           </CardContent>
         </Card>
 
-        {/* ─── Section 5: Offline SMS Action ────────────────────── */}
-        <div className="pt-4 pb-12">
+        {/* ─── Section 5: Offline SMS & Live Action ────────────────────── */}
+        <div className="pt-4 pb-12 space-y-4">
+          <Button 
+            onClick={handleLiveSos}
+            className="w-full h-14 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400/60 transition-all duration-500 rounded-xl font-bold tracking-widest uppercase text-sm shadow-[0_0_20px_rgba(99,102,241,0.15)] hover:shadow-[0_0_30px_rgba(99,102,241,0.25)]"
+          >
+            <Activity size={18} className="mr-2" strokeWidth={2} />
+            Send Live Digital SOS
+          </Button>
+
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-zinc-800"></div>
+            <span className="flex-shrink-0 mx-4 text-zinc-600 text-xs font-medium uppercase tracking-widest">Or Fallback to SMS</span>
+            <div className="flex-grow border-t border-zinc-800"></div>
+          </div>
+
           <Button 
             onClick={handleOfflineSms}
             className="w-full h-14 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 hover:border-rose-400/60 transition-all duration-500 rounded-xl font-bold tracking-widest uppercase text-sm shadow-[0_0_20px_rgba(244,63,94,0.15)] hover:shadow-[0_0_30px_rgba(244,63,94,0.25)]"
@@ -267,8 +297,8 @@ function SOSContent() {
           </Button>
           <p className="text-center text-[10px] text-zinc-500 uppercase tracking-widest mt-4 font-medium">
             {queued
-              ? "SOS saved locally and will sync when data returns"
-              : "This will open your messages app with pre-filled coordinates"}
+              ? "SOS saved/sending..."
+              : "Digital SOS requires internet. SMS opens messages app."}
           </p>
         </div>
       </main>

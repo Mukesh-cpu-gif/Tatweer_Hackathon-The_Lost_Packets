@@ -289,9 +289,9 @@ export default function OfflineAnimalAI() {
   }, []);
 
   return (
-    <Card className="border-amber-500/30 bg-gradient-to-br from-slate-900 to-slate-800">
+    <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-amber-400">
+        <CardTitle className="flex items-center gap-2 text-slate-200">
           <span className="text-2xl">🧬</span>
           Multimodal AI Identifier
         </CardTitle>

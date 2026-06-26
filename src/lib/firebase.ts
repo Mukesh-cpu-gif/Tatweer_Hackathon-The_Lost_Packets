@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCA_0dCQTM-ngMIMN0PhBvkBvEdkJA-0bw",
+  authDomain: "aounak-hackathon.firebaseapp.com",
+  projectId: "aounak-hackathon",
+  storageBucket: "aounak-hackathon.firebasestorage.app",
+  messagingSenderId: "758994168784",
+  appId: "1:758994168784:web:38d5efecc213a25951e7d5"
 };
 
 // Initialize Firebase only if it hasn't been initialized already

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import MapWrapper from "@/components/MapWrapper";
 
 /**
  * Mock Dune vs. Paved Route Comparison Page.
@@ -43,25 +44,13 @@ export default function RouteMapPage() {
                 </Badge>
               </div>
 
-              {/* Mock route visualization */}
-              <div className="relative h-36 bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden">
-                <svg className="w-full h-full" viewBox="0 0 300 120">
-                  {/* Dashed path showing the long road route */}
-                  <path
-                    d="M 20,100 Q 60,90 80,60 Q 100,30 140,40 Q 180,50 220,30 Q 260,10 280,20"
-                    fill="none"
-                    stroke="#64748b"
-                    strokeWidth="3"
-                    strokeDasharray="8,6"
-                    opacity="0.6"
-                  />
-                  {/* Start point */}
-                  <circle cx="20" cy="100" r="6" fill="#64748b" />
-                  <text x="28" y="96" fontSize="8" fill="#94a3b8">You</text>
-                  {/* End point */}
-                  <circle cx="280" cy="20" r="6" fill="#ef4444" />
-                  <text x="255" y="16" fontSize="8" fill="#94a3b8">SOS</text>
-                </svg>
+              {/* Interactive map replacing the SVG */}
+              <div className="relative h-48 bg-slate-900/60 rounded-xl border border-slate-700/50 overflow-hidden">
+                <MapWrapper
+                  routeType="paved"
+                  start={[23.5410, 55.4890]}
+                  end={[23.5450, 55.4900]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -91,47 +80,13 @@ export default function RouteMapPage() {
                 </Badge>
               </div>
 
-              {/* Mock route visualization */}
-              <div className="relative h-36 bg-slate-900/60 rounded-xl border border-amber-500/20 overflow-hidden">
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent" />
-                <svg className="w-full h-full" viewBox="0 0 300 120">
-                  {/* Solid path showing the direct dune route */}
-                  <path
-                    d="M 20,100 Q 80,80 150,60 Q 220,40 280,20"
-                    fill="none"
-                    stroke="url(#goldGradient)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                  />
-                  <defs>
-                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                      <stop offset="0%" stopColor="#f59e0b" />
-                      <stop offset="100%" stopColor="#fbbf24" />
-                    </linearGradient>
-                  </defs>
-                  {/* Animated dot traveling along the route */}
-                  <circle r="4" fill="#fbbf24">
-                    <animateMotion
-                      dur="3s"
-                      repeatCount="indefinite"
-                      path="M 20,100 Q 80,80 150,60 Q 220,40 280,20"
-                    />
-                  </circle>
-                  {/* Start point */}
-                  <circle cx="20" cy="100" r="6" fill="#f59e0b" />
-                  <text x="28" y="96" fontSize="8" fill="#fbbf24">You</text>
-                  {/* End point */}
-                  <circle cx="280" cy="20" r="6" fill="#ef4444">
-                    <animate
-                      attributeName="r"
-                      values="6;8;6"
-                      dur="1.5s"
-                      repeatCount="indefinite"
-                    />
-                  </circle>
-                  <text x="255" y="16" fontSize="8" fill="#fbbf24">SOS</text>
-                </svg>
+              {/* Interactive map replacing the SVG */}
+              <div className="relative h-48 bg-slate-900/60 rounded-xl border border-amber-500/20 overflow-hidden">
+                <MapWrapper
+                  routeType="dune"
+                  start={[23.5410, 55.4890]}
+                  end={[23.5450, 55.4900]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">

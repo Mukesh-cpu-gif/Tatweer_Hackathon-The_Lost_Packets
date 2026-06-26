@@ -17,9 +17,15 @@ const serviceWorkerScript =
   process.env.NODE_ENV === "production"
     ? `
         if ('serviceWorker' in navigator) {
-          window.addEventListener('load', function() {
+          var registerServiceWorker = function() {
             navigator.serviceWorker.register('/sw.js');
-          });
+          };
+
+          if (document.readyState === 'complete') {
+            registerServiceWorker();
+          } else {
+            window.addEventListener('load', registerServiceWorker);
+          }
         }
       `
     : `

@@ -68,11 +68,21 @@ function withStore<T>(
       new Promise<T>((resolve, reject) => {
         const transaction = db.transaction(SOS_STORE, mode);
         const request = callback(transaction.objectStore(SOS_STORE));
+        let result: T;
 
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+          result = request.result;
+        };
         request.onerror = () => reject(request.error);
-        transaction.oncomplete = () => db.close();
+        transaction.oncomplete = () => {
+          db.close();
+          resolve(result);
+        };
         transaction.onerror = () => {
+          db.close();
+          reject(transaction.error);
+        };
+        transaction.onabort = () => {
           db.close();
           reject(transaction.error);
         };

@@ -8,6 +8,7 @@ import { calculateDistance } from "@/lib/geo";
 import { mockResponders } from "@/lib/mockData";
 import MapWrapper from "@/components/MapWrapper";
 import { Fuel, Navigation, Compass, Maximize2, X } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface Station {
   id: string;
@@ -52,6 +53,8 @@ interface FuelCalculatorProps {
 const FALLBACK_COORDS = { lat: 23.543, lng: 55.487 };
 
 export default function FuelCalculator({ coordinates, onChange }: FuelCalculatorProps) {
+  const { t, isAr } = useLanguage();
+
   // Use stable fallback coordinates if GPS coords are not loaded yet
   const activeCoords = coordinates || FALLBACK_COORDS;
   const activeLat = activeCoords.lat;
@@ -60,7 +63,8 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
   // Hydration safety flag
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Calculate stats for all stations (compare using primitive values for stability)
@@ -80,7 +84,13 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
   }, [activeLat, activeLng]);
 
   // States
-  const [selectedStation, setSelectedStation] = useState<typeof stationsWithDistance[0]>(stationsWithDistance[0]);
+  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+
+  const selectedStation = useMemo(() => {
+    if (stationsWithDistance.length === 0) return null;
+    const match = stationsWithDistance.find((s) => s.id === selectedStationId);
+    return match || stationsWithDistance[0];
+  }, [stationsWithDistance, selectedStationId]);
   const [fuelEconomyInput, setFuelEconomyInput] = useState<string>("10");
   const [fuelEconomyUnit, setFuelEconomyUnit] = useState<"km_l" | "l_100km">("km_l");
   const [fuelType, setFuelType] = useState<string>("Special 95");
@@ -92,7 +102,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
   useEffect(() => {
     const handleOrientation = (e: DeviceOrientationEvent) => {
       if ("webkitCompassHeading" in e) {
-        const heading = (e as any).webkitCompassHeading;
+        const heading = (e as unknown as { webkitCompassHeading?: number }).webkitCompassHeading;
         if (typeof heading === "number") {
           setDeviceHeading(heading);
           return;
@@ -105,6 +115,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
     };
 
     if (typeof window !== "undefined") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const win = window as any;
       if ("ondeviceorientationabsolute" in win) {
         win.addEventListener("deviceorientationabsolute", handleOrientation, true);
@@ -115,6 +126,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
 
     return () => {
       if (typeof window !== "undefined") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const win = window as any;
         win.removeEventListener("deviceorientationabsolute", handleOrientation, true);
         win.removeEventListener("deviceorientation", handleOrientation, true);
@@ -142,15 +154,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
   }, [activeLat, activeLng]);
 
   // Automatically update selected station if the computed list changes, preventing cycles
-  useEffect(() => {
-    if (stationsWithDistance.length > 0) {
-      const match = stationsWithDistance.find((s) => s.id === selectedStation?.id);
-      const target = match || stationsWithDistance[0];
-      if (selectedStation?.id !== target.id) {
-        setSelectedStation(target);
-      }
-    }
-  }, [stationsWithDistance, selectedStation?.id]);
+  // Automatically update selected station is now handled purely and reactively via useMemo derivation.
 
   const fuelEconomyNumber = parseFloat(fuelEconomyInput) || 10;
 
@@ -170,8 +174,13 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
 
   const summaryText = useMemo(() => {
     if (!selectedStation) return "";
+    const stationName = isAr ? selectedStation.nameAr : selectedStation.name;
+    const fuelTypeLabel = t(fuelType);
+    if (isAr) {
+      return `طلب وقود: ${calculatedVolume.toFixed(1)} لتر من ${fuelTypeLabel} (المحطة: ${stationName}، على بعد ${selectedStation.distance.toFixed(1)} كم، الاتجاه: ${selectedStation.direction})`;
+    }
     return `Request: ${calculatedVolume.toFixed(1)}L of ${fuelType} (Target: ${selectedStation.name}, ${selectedStation.distance.toFixed(1)}km away, Bearing: ${selectedStation.direction})`;
-  }, [selectedStation, calculatedVolume, fuelType]);
+  }, [selectedStation, calculatedVolume, fuelType, isAr, t]);
 
   useEffect(() => {
     onChange(summaryText);
@@ -183,10 +192,10 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
       <CardHeader className="pb-3 border-b border-zinc-800/50">
         <CardTitle className="flex items-center gap-2 text-slate-200 text-sm font-bold tracking-widest uppercase">
           <Fuel size={18} className="text-indigo-400" />
-          Fuel Calculator & Station Finder
+          {t("Fuel Calculator & Station Finder")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Locate actual ADNOC stations and compute exact emergency fuel requirements.
+          {t("Locate actual ADNOC stations and compute exact emergency fuel requirements.")}
         </p>
       </CardHeader>
 
@@ -194,13 +203,13 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
         {/* ── Section 1: Nearest ADNOC Stations ────────────────── */}
         <div className="space-y-2">
           <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase flex items-center justify-between">
-            <span>Nearest ADNOC Stations</span>
+            <span>{t("Nearest ADNOC Stations")}</span>
             {deviceHeading !== null ? (
               <Badge variant="outline" className="bg-emerald-950/40 border-emerald-500/30 text-emerald-400 text-[8px] font-bold uppercase tracking-wider animate-pulse h-5 flex items-center">
-                Compass Active
+                {t("Compass Active")}
               </Badge>
             ) : (
-              <span className="text-[10px] text-zinc-500 italic">Relative to your position</span>
+              <span className="text-[10px] text-zinc-500 italic">{t("Relative to your position")}</span>
             )}
           </label>
           <div className="space-y-2">
@@ -210,7 +219,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                 <button
                   key={station.id}
                   type="button"
-                  onClick={() => setSelectedStation(station)}
+                  onClick={() => setSelectedStationId(station.id)}
                   className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all duration-300 ${
                     isSelected
                       ? "bg-indigo-600/20 border-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.25)]"
@@ -219,7 +228,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                 >
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg border transition-all ${
-                      isSelected ? "bg-indigo-600/30 border-indigo-500/30" : "bg-zinc-900 border-zinc-800"
+                       isSelected ? "bg-indigo-600/30 border-indigo-500/30" : "bg-zinc-900 border-zinc-800"
                     }`}>
                       <Navigation
                         size={16}
@@ -243,17 +252,17 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                       <p className={`text-xs font-bold tracking-wide uppercase ${
                         isSelected ? "text-indigo-200" : "text-zinc-300"
                       }`}>
-                        {station.name}
+                        {isAr ? station.nameAr : station.name}
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-0.5">
-                        {station.nameAr} · Direction: {station.direction} ({station.bearing.toFixed(0)}°)
+                        {isAr ? station.name : station.nameAr} · {t("Direction:")} {station.direction} ({station.bearing.toFixed(0)}°)
                       </p>
                     </div>
                   </div>
                   <Badge variant="outline" className={`text-[10px] font-bold tracking-widest uppercase border ${
                     isSelected ? "bg-indigo-950/30 border-indigo-500/30 text-indigo-300" : "border-zinc-800 text-zinc-400"
                   }`}>
-                    {station.distance.toFixed(1)} km
+                    {station.distance.toFixed(1)} {isAr ? "كم" : "km"}
                   </Badge>
                 </button>
               );
@@ -265,7 +274,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="fuel-economy" className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">
-              Fuel Economy
+              {t("Fuel Economy")}
             </label>
             <Input
               id="fuel-economy"
@@ -280,7 +289,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
 
           <div className="space-y-2">
             <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">
-              Economy Unit
+              {t("Economy Unit")}
             </label>
             <div className="grid grid-cols-2 bg-zinc-950/50 border border-zinc-800 rounded-lg p-0.5 h-8.5 items-center">
               <button
@@ -311,7 +320,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
 
         {/* ── Section 3: Fuel Type Selection ───────────────────── */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">Fuel Type Needed</label>
+          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">{t("Fuel Type Needed")}</label>
           <div className="grid grid-cols-3 gap-2">
             {["Special 95", "Super 98", "Diesel"].map((type) => {
               const isSelected = fuelType === type;
@@ -326,7 +335,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                       : "bg-zinc-950/40 border-zinc-800/80 text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
-                  {type}
+                  {t(type)}
                 </button>
               );
             })}
@@ -336,9 +345,9 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
         {/* ── Section 4: Safety Buffer Slider ─────────────────── */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <label className="font-semibold text-zinc-400 tracking-wider uppercase">Safety Buffer (Liters)</label>
+            <label className="font-semibold text-zinc-400 tracking-wider uppercase">{t("Safety Buffer (Liters)")}</label>
             <span className="font-mono font-bold text-indigo-300 bg-indigo-950/30 border border-indigo-500/20 px-2 py-0.5 rounded">
-              +{safetyBuffer} Liters
+              +{safetyBuffer} {isAr ? "لتر" : "Litres"}
             </span>
           </div>
           <input
@@ -357,17 +366,25 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/10 p-3.5 space-y-2.5 animate-in fade-in duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">Recommended Supply</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">{t("Recommended Supply")}</p>
                 <p className="text-xl font-extrabold text-zinc-100 mt-1">
-                  {calculatedVolume.toFixed(1)} <span className="text-sm font-semibold text-zinc-400">Liters</span>
+                  {calculatedVolume.toFixed(1)} <span className="text-sm font-semibold text-zinc-400">{isAr ? "لتر" : "Liters"}</span>
                 </p>
               </div>
               <Badge className="bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold tracking-widest uppercase">
-                {fuelType}
+                {t(fuelType)}
               </Badge>
             </div>
             <div className="text-[11px] text-zinc-400 leading-relaxed pt-2 border-t border-zinc-800/60">
-              To reach <strong className="text-zinc-200">{selectedStation.name}</strong> ({selectedStation.distance.toFixed(1)} km away, Heading {selectedStation.direction}), you need ~{(selectedStation.distance / economyInKmL).toFixed(1)}L of fuel based on your {fuelEconomyInput} {fuelEconomyUnit === "km_l" ? "km/L" : "L/100km"} fuel economy. We added a {safetyBuffer}L buffer.
+              {isAr ? (
+                <>
+                  للوصول إلى <strong className="text-zinc-200">{selectedStation.nameAr}</strong> (على بعد {selectedStation.distance.toFixed(1)} كم، بموقع اتجاه {selectedStation.direction})، ستحتاج حوالي {(selectedStation.distance / economyInKmL).toFixed(1)} لتر من الوقود بناءً على كفاءة استهلاكك للوقود البالغة {fuelEconomyInput} {fuelEconomyUnit === "km_l" ? "كم/لتر" : "لتر/100كم"}. قمنا بإضافة {safetyBuffer} لتر كهامش أمان.
+                </>
+              ) : (
+                <>
+                  To reach <strong className="text-zinc-200">{selectedStation.name}</strong> ({selectedStation.distance.toFixed(1)} km away, Heading {selectedStation.direction}), you need ~{(selectedStation.distance / economyInKmL).toFixed(1)}L of fuel based on your {fuelEconomyInput} {fuelEconomyUnit === "km_l" ? "km/L" : "L/100km"} fuel economy. We added a {safetyBuffer}L buffer.
+                </>
+              )}
             </div>
           </div>
         )}
@@ -376,8 +393,8 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
         {selectedStation && (
           <div className="space-y-2 pt-2 border-t border-zinc-800/60">
             <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase flex items-center justify-between">
-              <span>Route & Response Preview</span>
-              <span className="text-[9px] text-zinc-500 uppercase font-medium">Volunteers Plotted</span>
+              <span>{t("Route & Response Preview")}</span>
+              <span className="text-[9px] text-zinc-500 uppercase font-medium">{t("Volunteers Plotted")}</span>
             </label>
             <div className="h-44 w-full rounded-xl overflow-hidden border border-zinc-800/80 relative z-10 shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] group/map">
               <MapWrapper
@@ -385,7 +402,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                 start={[activeCoords.lat, activeCoords.lng]}
                 end={[selectedStation.lat, selectedStation.lng]}
                 responders={nearestResponders}
-                endName={selectedStation.name}
+                endName={isAr ? selectedStation.nameAr : selectedStation.name}
               />
               
               {/* Maximize Button Overlay */}
@@ -393,7 +410,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                 type="button"
                 onClick={() => setIsFullscreen(true)}
                 className="absolute top-2.5 right-2.5 z-[500] p-2 bg-zinc-950/80 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors shadow-lg"
-                title="Expand Map"
+                title={t("Fullscreen Mode")}
               >
                 <Maximize2 size={14} />
               </button>
@@ -408,10 +425,10 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
               <div>
                 <h3 className="font-bold text-base text-zinc-100 tracking-wide uppercase flex items-center gap-2">
                   <Compass size={18} className="text-indigo-400 animate-spin" style={{ animationDuration: '3s' }} />
-                  Tactical Navigation Grid
+                  {t("Tactical Navigation Grid")}
                 </h3>
                 <p className="text-xs text-zinc-400 mt-0.5">
-                  Target: {selectedStation.name} · Showing 3 Nearest Rescue Volunteers
+                  {t("Target:")} {isAr ? selectedStation.nameAr : selectedStation.name} · {t("Showing 3 Nearest Rescue Volunteers")}
                 </p>
               </div>
               <button
@@ -429,17 +446,17 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                 start={[activeCoords.lat, activeCoords.lng]}
                 end={[selectedStation.lat, selectedStation.lng]}
                 responders={nearestResponders}
-                endName={selectedStation.name}
+                endName={isAr ? selectedStation.nameAr : selectedStation.name}
               />
             </div>
             
             <div className="flex items-center justify-between text-xs text-zinc-500 py-1 bg-zinc-900/40 px-4 rounded-xl border border-zinc-800/30">
               <div className="flex items-center gap-4">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block shadow-[0_0_6px_#6366f1]"></span> Your Location</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_#f59e0b]"></span> ADNOC Station</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-[0_0_6px_#10b981]"></span> Nearest Responders</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block shadow-[0_0_6px_#6366f1]"></span> {t("Your Location")}</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block shadow-[0_0_6px_#f59e0b]"></span> {t("ADNOC Station")}</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shadow-[0_0_6px_#10b981]"></span> {t("Nearest Responders")}</span>
               </div>
-              <span className="font-mono tracking-widest uppercase text-[10px]">Al Qua'a Response Grid</span>
+              <span className="font-mono tracking-widest uppercase text-[10px]">{t("Al Qua'a Response Grid")}</span>
             </div>
           </div>
         )}

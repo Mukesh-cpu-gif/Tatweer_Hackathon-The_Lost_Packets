@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tractor, Info, AlertTriangle, Scale } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface VehicleOption {
   id: string;
@@ -101,6 +102,8 @@ interface DeflationGuideProps {
 }
 
 export default function DeflationGuide({ onChange }: DeflationGuideProps) {
+  const { t, isAr } = useLanguage();
+
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleOption>(VEHICLES[3]); // Heavy 4x4 default
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainOption>(TERRAINS[0]); // Deep Sand default
   const [vehicleWeight, setVehicleWeight] = useState<number>(VEHICLES[3].defaultWeight);
@@ -109,10 +112,11 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
   const [step2, setStep2] = useState(false);
   const [step3, setStep3] = useState(false);
 
-  // Sync weight slider when vehicle type changes
-  useEffect(() => {
-    setVehicleWeight(selectedVehicle.defaultWeight);
-  }, [selectedVehicle]);
+  const resetSteps = () => {
+    setStep1(false);
+    setStep2(false);
+    setStep3(false);
+  };
 
   // Compute weight-adjusted PSI
   const calculationResult = useMemo(() => {
@@ -156,20 +160,20 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
   }, [selectedVehicle, selectedTerrain, vehicleWeight]);
 
   const summaryText = useMemo(() => {
+    const vehicleLabel = isAr ? selectedVehicle.labelAr : selectedVehicle.label;
+    const terrainLabel = isAr ? selectedTerrain.labelAr : selectedTerrain.label;
+    if (isAr) {
+      return `مركبة عالقة: ${vehicleLabel} (${vehicleWeight} كجم) | التضاريس: ${terrainLabel} | الضغط المستهدف المحتسب: ${calculationResult.psiRange}`;
+    }
     return `Stuck Vehicle: ${selectedVehicle.label} (${vehicleWeight}kg) | Terrain: ${selectedTerrain.label} | Calculated Target: ${calculationResult.psiRange}`;
-  }, [selectedVehicle, selectedTerrain, vehicleWeight, calculationResult]);
+  }, [selectedVehicle, selectedTerrain, vehicleWeight, calculationResult, isAr]);
 
   // Sync back to parent page
   useEffect(() => {
     onChange(summaryText);
   }, [summaryText, onChange]);
 
-  // Reset checkmarks when configuration changes
-  useEffect(() => {
-    setStep1(false);
-    setStep2(false);
-    setStep3(false);
-  }, [selectedVehicle, selectedTerrain, vehicleWeight]);
+
 
   return (
     <Card className="border-slate-800 bg-slate-900/50 backdrop-blur shadow-xl relative overflow-hidden">
@@ -177,17 +181,17 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
       <CardHeader className="pb-3 border-b border-zinc-800/50">
         <CardTitle className="flex items-center gap-2 text-slate-200 text-sm font-bold tracking-widest uppercase">
           <Tractor size={18} className="text-amber-400" />
-          Tire Deflation & PSI Guide
+          {t("Tire Deflation & PSI Guide")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Configure vehicle, load weight, & sand terrain to calculate optimal tire recovery pressure.
+          {t("Configure vehicle, load weight, & sand terrain to calculate optimal tire recovery pressure.")}
         </p>
       </CardHeader>
 
       <CardContent className="pt-4 space-y-5">
         {/* ── Vehicle Selector Grid ── */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">Vehicle Type</label>
+          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">{t("Vehicle Type")}</label>
           <div className="grid grid-cols-5 gap-1.5">
             {VEHICLES.map((v) => {
               const isSelected = selectedVehicle.id === v.id;
@@ -195,7 +199,11 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => setSelectedVehicle(v)}
+                  onClick={() => {
+                    setSelectedVehicle(v);
+                    setVehicleWeight(v.defaultWeight);
+                    resetSteps();
+                  }}
                   className={`group relative flex flex-col items-center justify-center p-2 rounded-xl border transition-all duration-300 ${
                     isSelected
                       ? "bg-amber-600/20 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.25)]"
@@ -208,12 +216,12 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                   <span className={`text-[8px] font-bold tracking-tight uppercase text-center truncate w-full ${
                     isSelected ? "text-amber-300" : "text-zinc-400 group-hover:text-zinc-200"
                   }`}>
-                    {v.label.split(" ")[0]}
+                    {isAr ? v.labelAr : v.label.split(" ")[0]}
                   </span>
                   <span className={`text-[8px] font-medium opacity-50 mt-0.5 ${
                     isSelected ? "text-amber-400" : "text-zinc-500"
                   }`} dir="rtl">
-                    {v.labelAr}
+                    {isAr ? v.label.split(" ")[0] : v.labelAr}
                   </span>
                 </button>
               );
@@ -226,10 +234,10 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
           <div className="flex justify-between items-center text-xs">
             <label className="font-semibold text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
               <Scale size={13} className="text-zinc-500" />
-              Vehicle Weight
+              {t("Vehicle Weight")}
             </label>
             <span className="font-mono font-bold text-amber-300 bg-amber-950/30 border border-amber-500/20 px-2 py-0.5 rounded">
-              {vehicleWeight.toLocaleString()} kg
+              {vehicleWeight.toLocaleString()} {isAr ? "كجم" : "kg"}
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -239,28 +247,34 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
               max={selectedVehicle.maxWeight}
               step="50"
               value={vehicleWeight}
-              onChange={(e) => setVehicleWeight(parseInt(e.target.value))}
+              onChange={(e) => {
+                setVehicleWeight(parseInt(e.target.value));
+                resetSteps();
+              }}
               className="flex-grow h-1.5 rounded-lg bg-zinc-800 accent-amber-500 cursor-pointer"
             />
           </div>
           <div className="flex justify-between text-[9px] text-zinc-600 font-semibold tracking-wider uppercase">
-            <span>Min: {selectedVehicle.minWeight} kg</span>
-            <span className="text-zinc-500">Default: {selectedVehicle.defaultWeight} kg</span>
-            <span>Max: {selectedVehicle.maxWeight} kg</span>
+            <span>{isAr ? "الأدنى:" : "Min:"} {selectedVehicle.minWeight} {isAr ? "كجم" : "kg"}</span>
+            <span className="text-zinc-500">{isAr ? "الافتراضي:" : "Default:"} {selectedVehicle.defaultWeight} {isAr ? "كجم" : "kg"}</span>
+            <span>{isAr ? "الأقصى:" : "Max:"} {selectedVehicle.maxWeight} {isAr ? "كجم" : "kg"}</span>
           </div>
         </div>
 
         {/* ── Terrain Selector ── */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">Terrain Condition</label>
+          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">{t("Terrain Condition")}</label>
           <div className="grid grid-cols-3 gap-2.5">
-            {TERRAINS.map((t) => {
-              const isSelected = selectedTerrain.id === t.id;
+            {TERRAINS.map((tOp) => {
+              const isSelected = selectedTerrain.id === tOp.id;
               return (
                 <button
-                  key={t.id}
+                  key={tOp.id}
                   type="button"
-                  onClick={() => setSelectedTerrain(t)}
+                  onClick={() => {
+                    setSelectedTerrain(tOp);
+                    resetSteps();
+                  }}
                   className={`group relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
                     isSelected
                       ? "bg-amber-600/20 border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
@@ -268,17 +282,17 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                   }`}
                 >
                   <span className="text-2xl mb-1 transition-transform duration-300 group-hover:scale-110">
-                    {t.emoji}
+                    {tOp.emoji}
                   </span>
                   <span className={`text-[10px] font-bold tracking-wide uppercase text-center ${
                     isSelected ? "text-amber-300" : "text-zinc-400 group-hover:text-zinc-200"
                   }`}>
-                    {t.label}
+                    {isAr ? tOp.labelAr : tOp.label}
                   </span>
                   <span className={`text-[9px] font-medium opacity-50 mt-0.5 ${
                     isSelected ? "text-amber-400" : "text-zinc-500"
                   }`} dir="rtl">
-                    {t.labelAr}
+                    {isAr ? tOp.label : tOp.labelAr}
                   </span>
                 </button>
               );
@@ -290,13 +304,13 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
         <div className="rounded-xl border border-amber-500/20 bg-amber-950/10 p-4 space-y-3 animate-in fade-in duration-300">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">Recommended Pressure</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">{t("Recommended Pressure")}</p>
               <p className="text-2xl font-extrabold text-zinc-100 mt-1">
                 {calculationResult.psiRange}
               </p>
             </div>
             <Badge className="bg-amber-600/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold tracking-widest uppercase">
-              Weight Adjusted
+              {t("Weight Adjusted")}
             </Badge>
           </div>
           
@@ -304,11 +318,8 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
             <div className="flex gap-2.5">
               <Info size={16} className="text-amber-400 shrink-0 mt-0.5" />
               <div className="text-xs text-zinc-300 leading-relaxed font-medium">
-                {calculationResult.advice}
+                {isAr ? calculationResult.adviceAr : calculationResult.advice}
               </div>
-            </div>
-            <div className="text-[11px] text-amber-200/60 leading-relaxed text-right font-medium" dir="rtl">
-              {calculationResult.adviceAr}
             </div>
           </div>
         </div>
@@ -318,9 +329,9 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
           <div className="flex gap-2.5 bg-rose-950/20 border border-rose-900/30 rounded-xl p-3.5 animate-in slide-in-from-top-2 duration-300">
             <AlertTriangle size={18} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
             <div>
-              <p className="text-xs font-bold text-rose-300 uppercase tracking-wide">Critical Dune Hazard</p>
+              <p className="text-xs font-bold text-rose-300 uppercase tracking-wide">{t("Critical Dune Hazard")}</p>
               <p className="text-[10px] text-rose-300/70 leading-relaxed mt-0.5">
-                Low-clearance vehicles are highly prone to bottoming out. Avoid spinning wheels or flooring the gas — you will dig the chassis directly onto the sand. Dig flat ramps under all 4 tires and put wood tracks or floor mats under them.
+                {t("Low-clearance vehicles are highly prone to bottoming out. Avoid spinning wheels or flooring the gas — you will dig the chassis directly onto the sand. Dig flat ramps under all 4 tires and put wood tracks or floor mats under them.")}
               </p>
             </div>
           </div>
@@ -328,7 +339,7 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
 
         {/* ── Interactive Recovery Checklist ── */}
         <div className="space-y-3 pt-2 border-t border-zinc-800/60">
-          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">Active Self-Recovery Steps</label>
+          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">{t("Active Self-Recovery Steps")}</label>
           <div className="space-y-2">
             <label className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-950/30 p-3 hover:bg-zinc-900/50 cursor-pointer transition-colors">
               <input
@@ -338,8 +349,8 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                 className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-zinc-900"
               />
               <div>
-                <p className="text-xs font-semibold text-zinc-200">1. Deflate all 4 tires down to {calculationResult.psiRange}</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Use tire deflators, a key, or a pin. Check pressure regularly.</p>
+                <p className="text-xs font-semibold text-zinc-200">{t("1. Deflate all 4 tires down to")} {calculationResult.psiRange}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{t("Use tire deflators, a key, or a pin. Check pressure regularly.")}</p>
               </div>
             </label>
 
@@ -351,8 +362,8 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                 className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-zinc-900"
               />
               <div>
-                <p className="text-xs font-semibold text-zinc-200">2. Clear sand blockages around the tires</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Dig out sand behind and in front of all 4 tires to create a ramp.</p>
+                <p className="text-xs font-semibold text-zinc-200">{t("2. Clear sand blockages around the tires")}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{t("Dig out sand behind and in front of all 4 tires to create a ramp.")}</p>
               </div>
             </label>
 
@@ -364,8 +375,8 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                 className="mt-0.5 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-zinc-900"
               />
               <div>
-                <p className="text-xs font-semibold text-zinc-200">3. Set wheels straight & drive out slowly</p>
-                <p className="text-[10px] text-zinc-500 mt-0.5">Set steering wheel completely straight. Apply smooth, low throttle.</p>
+                <p className="text-xs font-semibold text-zinc-200">{t("3. Set wheels straight & drive out slowly")}</p>
+                <p className="text-[10px] text-zinc-500 mt-0.5">{t("Set steering wheel completely straight. Apply smooth, low throttle.")}</p>
               </div>
             </label>
           </div>
@@ -373,7 +384,7 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
           <div className="flex gap-2 bg-rose-950/20 border border-rose-900/30 rounded-xl p-3 mt-1.5">
             <AlertTriangle size={16} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
             <p className="text-[10px] text-rose-300/80 leading-relaxed font-semibold uppercase tracking-wider">
-              Warning: Do NOT make sharp turns below 15 PSI. This prevents tires from popping off the rim (de-beading).
+              {t("Warning: Do NOT make sharp turns below 15 PSI. This prevents tires from popping off the rim (de-beading).")}
             </p>
           </div>
         </div>

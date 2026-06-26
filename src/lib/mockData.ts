@@ -19,8 +19,10 @@ export interface SOSType {
   icon: string;
   lucideIconName?: string;
   description: string;
+  descriptionAr?: string;
   requiredSkills: string[];
   firstAid: string[];
+  firstAidAr?: string[];
   color: string;
   styleConfig?: {
     bg: string;
@@ -60,6 +62,7 @@ export interface WeatherAlert {
   title: string;
   titleAr: string;
   description: string;
+  descriptionAr?: string;
   expiresAt: string;
 }
 
@@ -74,6 +77,7 @@ export const sosTypes: SOSType[] = [
     icon: "🦂",
     lucideIconName: "Bug",
     description: "Snake bite or scorpion sting requiring immediate anti-venom",
+    descriptionAr: "لدغة أفعى أو لسعة عقرب تتطلب ترياقاً فورياً",
     requiredSkills: ["Medical", "Anti-Venom"],
     firstAid: [
       "Keep the affected area still and below heart level.",
@@ -81,6 +85,13 @@ export const sosTypes: SOSType[] = [
       "Do NOT apply a tourniquet, ice, or cut the wound.",
       "Note the time of the bite/sting for responders.",
       "If possible, photograph the creature from a safe distance.",
+    ],
+    firstAidAr: [
+      "حافظ على هدوء المصاب وثبات العضو المصاب تحت مستوى القلب.",
+      "اغسل المنطقة بالماء والصابون إذا كان ذلك ممكناً.",
+      "لا تستخدم عصبة (مربطاً)، أو ثلجاً، أو تشق الجرح.",
+      "سجل وقت اللدغة/اللسعة للمستجيبين.",
+      "إذا كان ذلك ممكناً، التقط صورة للمخلوق من مسافة آمنة."
     ],
     color: "from-red-600 to-red-800",
     styleConfig: {
@@ -98,11 +109,17 @@ export const sosTypes: SOSType[] = [
     icon: "⛽",
     lucideIconName: "Fuel",
     description: "Vehicle stranded without fuel in the desert",
+    descriptionAr: "مركبة عالقة بدون وقود في الصحراء",
     requiredSkills: ["Transport", "Fuel Supply", "4x4"],
     firstAid: [
       "Stay with your vehicle — do NOT attempt to walk to find fuel.",
       "Turn on hazard lights or use a reflective surface.",
       "Conserve water and stay in the shade of the vehicle.",
+    ],
+    firstAidAr: [
+      "ابق مع مركبتك — لا تحاول المشي للبحث عن وقود.",
+      "قم بتشغيل أضواء التحذير (الرباعي) أو استخدم سطحاً عاكساً.",
+      "حافظ على المياه المتبقية وابتدأ بالجلوس في ظل المركبة."
     ],
     color: "from-blue-600 to-indigo-800",
     styleConfig: {
@@ -120,12 +137,19 @@ export const sosTypes: SOSType[] = [
     icon: "🏥",
     lucideIconName: "HeartPulse",
     description: "General medical emergency or heatstroke",
+    descriptionAr: "حالة طبية طارئة عامة أو ضربة شمس",
     requiredSkills: ["Medical", "First Aid"],
     firstAid: [
       "If heatstroke: move to shade, cool with water, fan the person.",
       "If unconscious: place in recovery position.",
       "Loosen any tight clothing.",
       "Do NOT give water to an unconscious person.",
+    ],
+    firstAidAr: [
+      "في حالة ضربة الشمس: انتقل إلى الظل، برد المصاب بالماء، وقم بتهويته.",
+      "في حالة فقدان الوعي: وضع المصاب في وضعية الإفاقة الجانبية.",
+      "قم بإرخاء أي ملابس ضيقة.",
+      "لا تعطِ الماء للشخص الفاقد للوعي."
     ],
     color: "from-rose-600 to-pink-800",
     styleConfig: {
@@ -143,12 +167,19 @@ export const sosTypes: SOSType[] = [
     icon: "🚜",
     lucideIconName: "Tractor",
     description: "Vehicle stuck in sand or broken down in the desert",
+    descriptionAr: "مركبة عالقة في الرمال أو معطلة في الصحراء",
     requiredSkills: ["Winch", "4x4", "Heavy Machinery"],
     firstAid: [
       "Stay with your vehicle — it is easier to spot than a person.",
       "Turn on hazard lights if the battery allows.",
       "Conserve water. Drink small sips regularly.",
       "Use a reflective surface to signal for help during daylight.",
+    ],
+    firstAidAr: [
+      "ابق مع مركبتك — فمن السهل رؤية المركبة مقارنة بالشخص.",
+      "قم بتشغيل أضواء التحذير إذا كانت البطارية تسمح بذلك.",
+      "حافظ على المياه. اشرب رشفات صغيرة بانتظام.",
+      "استخدم سطحاً عاكساً للإشارة لطلب المساعدة خلال النهار."
     ],
     color: "from-amber-600 to-yellow-800",
     styleConfig: {
@@ -166,12 +197,19 @@ export const sosTypes: SOSType[] = [
     icon: "🐪",
     lucideIconName: "Stethoscope",
     description: "Camel or livestock medical emergency",
+    descriptionAr: "حالة طوارئ طبية للإبل أو المواشي",
     requiredSkills: ["Livestock Expert", "Veterinary"],
     firstAid: [
       "Isolate the sick animal from the rest of the herd.",
       "Provide shade and water if the animal can drink.",
       "Note symptoms: lethargy, refusal to eat, discharge.",
       "Do NOT administer medication without vet guidance.",
+    ],
+    firstAidAr: [
+      "اعزل الحيوان المريض عن بقية القطيع.",
+      "وفر الظل والماء إذا كان الحيوان قادراً على الشرب.",
+      "سجل الأعراض: خمول، رفض الأكل، إفرازات.",
+      "لا تعطِ أي علاج دون استشارة الطبيب البيطري."
     ],
     color: "from-amber-700 to-orange-900",
     styleConfig: {
@@ -189,11 +227,17 @@ export const sosTypes: SOSType[] = [
     icon: "💧",
     lucideIconName: "Droplet",
     description: "Water pump failure or supply cut-off",
+    descriptionAr: "عطل في مضخة المياه أو انقطاع في الإمداد",
     requiredSkills: ["Plumbing", "Heavy Machinery"],
     firstAid: [
       "Ration remaining water immediately.",
       "Check if the pump has a manual override.",
       "Contact your nearest neighbor for emergency supply.",
+    ],
+    firstAidAr: [
+      "رشد المياه المتبقية على الفور.",
+      "تحقق مما إذا كانت المضخة تحتوي على زر تجاوز يدوي.",
+      "اتصل بأقرب جار للحصول على إمدادات الطوارئ."
     ],
     color: "from-blue-600 to-cyan-800",
     styleConfig: {
@@ -297,6 +341,7 @@ export const mockWeatherAlerts: WeatherAlert[] = [
     titleAr: "عاصفة رملية قادمة من الغرب",
     description:
       "Expected to reach Al Qua'a within 2 hours. Winds up to 60 km/h. Secure livestock and seek shelter.",
+    descriptionAr: "من المتوقع أن تصل إلى القوع خلال ساعتين. رياح تصل سرعتها إلى 60 كم/ساعة. يرجى تأمين المواشي والبحث عن مأوى.",
     expiresAt: new Date(MOCK_NOW + 2 * 3600000).toISOString(),
   },
   {
@@ -307,6 +352,7 @@ export const mockWeatherAlerts: WeatherAlert[] = [
     titleAr: "تحذير من حرارة شديدة",
     description:
       "Temperatures expected to reach 52°C. Limit outdoor activity between 11 AM and 4 PM. Ensure water supply for livestock.",
+    descriptionAr: "من المتوقع أن تصل درجات الحرارة إلى 52 درجة مئوية. يرجى الحد من الأنشطة الخارجية بين الساعة 11 صباحاً و4 مساءً وتأمين المياه للمواشي.",
     expiresAt: new Date(MOCK_NOW + 8 * 3600000).toISOString(),
   },
 ];

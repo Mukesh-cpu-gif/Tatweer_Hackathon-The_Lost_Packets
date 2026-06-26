@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Activity, AlertTriangle, Clock, ShieldAlert, Check } from "lucide-react";
 import type { LayersModel, Tensor } from "@tensorflow/tfjs";
 import { IMAGENET_CLASSES } from "@tensorflow-models/mobilenet/dist/imagenet_classes";
+import { useLanguage } from "@/context/LanguageContext";
 
 /**
  * Mock classification results for on-device AI animal identification.
@@ -65,15 +66,16 @@ const SPECIES_PROFILES: Record<string, SpeciesProfile> = {
 };
 
 const BodyMap = ({ selected, onSelect }: { selected: string; onSelect: (part: string) => void }) => {
+  const { t } = useLanguage();
   const parts = [
-    { id: "Head & Neck", label: "Head & Neck", path: "M 80,15 A 8,8 0 1,1 80,31 A 8,8 0 1,1 80,15 M 78,31 L 78,35 L 82,35 L 82,31 Z" },
-    { id: "Torso", label: "Torso", path: "M 70,36 L 90,36 L 88,80 L 72,80 Z" },
-    { id: "Right Arm", label: "Right Arm", path: "M 69,37 L 55,75 L 59,77 L 69,45 Z" },
-    { id: "Left Arm", label: "Left Arm", path: "M 91,37 L 105,75 L 101,77 L 91,45 Z" },
-    { id: "Right Leg", label: "Right Leg", path: "M 72,81 L 68,135 L 74,135 L 79,81 Z" },
-    { id: "Left Leg", label: "Left Leg", path: "M 88,81 L 92,135 L 86,135 L 81,81 Z" },
-    { id: "Right Foot", label: "Right Foot", path: "M 68,136 L 62,143 L 73,143 L 74,136 Z" },
-    { id: "Left Foot", label: "Left Foot", path: "M 92,136 L 98,143 L 87,143 L 86,136 Z" },
+    { id: "Head & Neck", label: t("Head & Neck"), path: "M 80,15 A 8,8 0 1,1 80,31 A 8,8 0 1,1 80,15 M 78,31 L 78,35 L 82,35 L 82,31 Z" },
+    { id: "Torso", label: t("Torso"), path: "M 70,36 L 90,36 L 88,80 L 72,80 Z" },
+    { id: "Right Arm", label: t("Right Arm"), path: "M 69,37 L 55,75 L 59,77 L 69,45 Z" },
+    { id: "Left Arm", label: t("Left Arm"), path: "M 91,37 L 105,75 L 101,77 L 91,45 Z" },
+    { id: "Right Leg", label: t("Right Leg"), path: "M 72,81 L 68,135 L 74,135 L 79,81 Z" },
+    { id: "Left Leg", label: t("Left Leg"), path: "M 88,81 L 92,135 L 86,135 L 81,81 Z" },
+    { id: "Right Foot", label: t("Right Foot"), path: "M 68,136 L 62,143 L 73,143 L 74,136 Z" },
+    { id: "Left Foot", label: t("Left Foot"), path: "M 92,136 L 98,143 L 87,143 L 86,136 Z" },
   ];
 
   return (
@@ -107,6 +109,8 @@ const BodyMap = ({ selected, onSelect }: { selected: string; onSelect: (part: st
 };
 
 export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string) => void }) {
+  const { t, isAr } = useLanguage();
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
@@ -187,6 +191,9 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
     const hrs = Math.floor(totalSecs / 3600);
     const mins = Math.floor((totalSecs % 3600) / 60);
     const secs = totalSecs % 60;
+    if (isAr) {
+      return `${hrs.toString().padStart(2, "0")}س : ${mins.toString().padStart(2, "0")}د : ${secs.toString().padStart(2, "0")}ث`;
+    }
     return `${hrs.toString().padStart(2, "0")}h : ${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
   };
 
@@ -198,18 +205,16 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
     return 2;
   }, [elapsedSeconds]);
 
-
-
-  const bodyParts = [
-    { id: "Head & Neck", label: "Head & Neck" },
-    { id: "Torso", label: "Torso" },
-    { id: "Right Arm", label: "Right Arm" },
-    { id: "Left Arm", label: "Left Arm" },
-    { id: "Right Leg", label: "Right Leg" },
-    { id: "Left Leg", label: "Left Leg" },
-    { id: "Right Foot", label: "Right Foot" },
-    { id: "Left Foot", label: "Left Foot" },
-  ];
+  const bodyParts = useMemo(() => [
+    { id: "Head & Neck", label: t("Head & Neck") },
+    { id: "Torso", label: t("Torso") },
+    { id: "Right Arm", label: t("Right Arm") },
+    { id: "Left Arm", label: t("Left Arm") },
+    { id: "Right Leg", label: t("Right Leg") },
+    { id: "Left Leg", label: t("Left Leg") },
+    { id: "Right Foot", label: t("Right Foot") },
+    { id: "Left Foot", label: t("Left Foot") },
+  ], [t]);
 
 
 
@@ -325,11 +330,11 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
       topSpecies = top1.className.split(',')[0];
       maxProb = top1.probability;
       return {
-        species: `Unclassified: ${topSpecies}`,
+        species: `${t("Unclassified:")} ${topSpecies}`,
         confidence: Math.round(maxProb * 100),
         dangerLevel: "low",
         dangerColor: "bg-slate-500 text-white",
-        action: "Unclassified species. Keep away and report to a responder if concerned.",
+        action: t("Unclassified species. Keep away and report to a responder if concerned."),
       };
     } else if (topSpecies === "") {
       return null;
@@ -342,19 +347,23 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
 
     let displayName = "";
     if (imagePredictions) {
-      displayName = rawNameFallback ? `${topSpecies} (Detected: ${rawNameFallback})` : topSpecies;
+      const translatedSpecies = t(topSpecies);
+      displayName = rawNameFallback ? `${translatedSpecies} (${t("Image Preview")}: ${rawNameFallback})` : translatedSpecies;
     } else {
-      displayName = `${profile.dangerLevel.charAt(0).toUpperCase() + profile.dangerLevel.slice(1)} Threat Level (Symptom Assessment)`;
+      const threatLabel = profile.dangerLevel === "extreme" ? t("Extreme") : profile.dangerLevel === "high" ? t("High") : t("Low");
+      displayName = isAr 
+        ? `مستوى التهديد: ${threatLabel} (تقييم الأعراض)`
+        : `${profile.dangerLevel.charAt(0).toUpperCase() + profile.dangerLevel.slice(1)} Threat Level (Symptom Assessment)`;
     }
     return {
       species: displayName,
       confidence: Math.round(maxProb * 100),
       dangerLevel: profile.dangerLevel,
       dangerColor: profile.dangerColor,
-      action: profile.action,
+      action: t(profile.action),
     };
 
-  }, [imagePredictions, selectedSymptoms]);
+  }, [imagePredictions, selectedSymptoms, isAr, t]);
 
   // Medical advisory timeline content based on danger level
   const timelinePhases = useMemo(() => {
@@ -363,98 +372,134 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
     if (danger === "extreme" || danger === "high") {
       return [
         {
-          title: "Phase 1: Localized Phase (0-15m)",
-          symptoms: "Intense local pain, minor swelling, fang marks oozing.",
-          action: "Immobilize the limb below heart level. Remain completely still to slow venom spread. Remove rings/watches.",
+          title: t("Phase 1: Localized Phase (0-15m)"),
+          symptoms: t("Intense local pain, minor swelling, fang marks oozing."),
+          action: t("Immobilize the limb below heart level. Remain completely still to slow venom spread. Remove rings/watches."),
         },
         {
-          title: "Phase 2: Lymphatic Spread (15-60m)",
-          symptoms: "Swelling spreads up the limb, numbness/tingling, rapid pulse, nausea.",
-          action: "Do NOT move. Splint the limb if possible. Keep airway clear. Responders are en route.",
+          title: t("Phase 2: Lymphatic Spread (15-60m)"),
+          symptoms: t("Swelling spreads up the limb, numbness/tingling, rapid pulse, nausea."),
+          action: t("Do NOT move. Splint the limb if possible. Keep airway clear. Responders are en route."),
         },
         {
-          title: "Phase 3: Systemic Absorption (60m+)",
-          symptoms: "Dizziness, sweating, muscle twitching, breathing difficulty.",
-          action: "Lie in recovery position (left side) if feeling faint or weak. Ensure your mouth is clear.",
+          title: t("Phase 3: Systemic Absorption (60m+)"),
+          symptoms: t("Dizziness, sweating, muscle twitching, breathing difficulty."),
+          action: t("Lie in recovery position (left side) if feeling faint or weak. Ensure your mouth is clear."),
         },
       ];
     } else if (danger === "low") {
       return [
         {
-          title: "Phase 1: Localized Phase (0-15m)",
-          symptoms: "Mild localized pain, small puncture/scratch marks.",
-          action: "Wash the bite wound thoroughly with soap and clean water to prevent local infection.",
+          title: t("Phase 1: Localized Phase (0-15m)"),
+          symptoms: t("Mild localized pain, small puncture/scratch marks."),
+          action: t("Wash the bite wound thoroughly with soap and clean water to prevent local infection."),
         },
         {
-          title: "Phase 2: Observation Phase (15-60m)",
-          symptoms: "Pain subsides, no spreading swelling, no systemic issues.",
-          action: "Keep the area clean. Monitor for any signs of allergic reactions (hives, wheezing).",
+          title: t("Phase 2: Observation Phase (15-60m)"),
+          symptoms: t("Pain subsides, no spreading swelling, no systemic issues."),
+          action: t("Keep the area clean. Monitor for any signs of allergic reactions (hives, wheezing)."),
         },
         {
-          title: "Phase 3: Recovery Phase (60m+)",
-          symptoms: "Wound irritation only.",
-          action: "Standard wound care. Reassure the victim. Tetanus shot booster recommended if not up-to-date.",
+          title: t("Phase 3: Recovery Phase (60m+)"),
+          symptoms: t("Wound irritation only."),
+          action: t("Standard wound care. Reassure the victim. Tetanus shot booster recommended if not up-to-date."),
         },
       ];
     } else {
       return [
         {
-          title: "Phase 1: Shock & Local Pain (0-15m)",
-          symptoms: "Pain or stinging, shock, fear.",
-          action: "Wash the bite area. Immobilize the limb below heart level. DO NOT walk or run.",
+          title: t("Phase 1: Shock & Local Pain (0-15m)"),
+          symptoms: t("Pain or stinging, shock, fear."),
+          action: t("Wash the bite area. Immobilize the limb below heart level. DO NOT walk or run."),
         },
         {
-          title: "Phase 2: Symptom Assessment (15-60m)",
-          symptoms: "Observe if swelling spreads, or if numbness, nausea, or sweating starts.",
-          action: "Keep still. Responders will check for clinical signs of envenomation upon arrival.",
+          title: t("Phase 2: Symptom Assessment (15-60m)"),
+          symptoms: t("Observe if swelling spreads, or if numbness, nausea, or sweating starts."),
+          action: t("Keep still. Responders will check for clinical signs of envenomation upon arrival."),
         },
         {
-          title: "Phase 3: Critical Window (60m+)",
-          symptoms: "Potential systemic effects if creature was venomous.",
-          action: "Lie in the recovery position if feeling dizzy or faint. Prepare details for medical personnel.",
+          title: t("Phase 3: Critical Window (60m+)"),
+          symptoms: t("Potential systemic effects if creature was venomous."),
+          action: t("Lie in the recovery position if feeling dizzy or faint. Prepare details for medical personnel."),
         },
       ];
     }
-  }, [result]);
+  }, [result, t]);
 
   // Report details back to SOSClient
   useEffect(() => {
     if (!onChange) return;
 
     const parts: string[] = [];
-    if (result) {
-      parts.push(`Creature: ${result.species} (${result.confidence}%)`);
+    if (isAr) {
+      if (result) {
+        parts.push(`الكائن: ${result.species} (${result.confidence}%)`);
+      } else {
+        parts.push("الكائن: غير معروف");
+      }
+
+      if (selectedBodyPart) {
+        parts.push(`الموقع: ${t(selectedBodyPart)}`);
+      } else {
+        parts.push("الموقع: غير محدد");
+      }
+
+      const elapsedMins = Math.floor(elapsedSeconds / 60);
+      parts.push(`الوقت: ${biteTimePreset === "just_now" ? "الآن" : `${elapsedMins} دقيقة مضت`} (المنقضي: ${formatElapsed(elapsedSeconds)})`);
+
+      const symptomsText = selectedSymptoms
+        .map(id => {
+          const sym = SYMPTOMS_LIST.find(s => s.id === id);
+          return sym ? t(sym.label) : "";
+        })
+        .filter(Boolean)
+        .join("، ");
+      if (symptomsText) {
+        parts.push(`الأعراض: ${symptomsText}`);
+      }
+
+      const badActions = [];
+      if (firstAidActions.tourniquet) badActions.push("تم وضع عاصبة");
+      if (firstAidActions.ice) badActions.push("تم استخدام الثلج");
+      if (firstAidActions.cutWound) badActions.push("تم شق الجرح");
+      if (badActions.length > 0) {
+        parts.push(`إجراءات خاطئة تم اتخاذها: ${badActions.join("، ")}`);
+      }
     } else {
-      parts.push("Creature: Unknown/Unclassified");
-    }
+      if (result) {
+        parts.push(`Creature: ${result.species} (${result.confidence}%)`);
+      } else {
+        parts.push("Creature: Unknown/Unclassified");
+      }
 
-    if (selectedBodyPart) {
-      parts.push(`Location: ${selectedBodyPart}`);
-    } else {
-      parts.push("Location: Not specified");
-    }
+      if (selectedBodyPart) {
+        parts.push(`Location: ${selectedBodyPart}`);
+      } else {
+        parts.push("Location: Not specified");
+      }
 
-    const elapsedMins = Math.floor(elapsedSeconds / 60);
-    parts.push(`Time: ${biteTimePreset === "just_now" ? "Just now" : `${elapsedMins}m ago`} (Elapsed: ${formatElapsed(elapsedSeconds)})`);
+      const elapsedMins = Math.floor(elapsedSeconds / 60);
+      parts.push(`Time: ${biteTimePreset === "just_now" ? "Just now" : `${elapsedMins}m ago`} (Elapsed: ${formatElapsed(elapsedSeconds)})`);
 
-    const symptomsText = selectedSymptoms
-      .map(id => SYMPTOMS_LIST.find(s => s.id === id)?.label)
-      .filter(Boolean)
-      .join(", ");
-    if (symptomsText) {
-      parts.push(`Symptoms: ${symptomsText}`);
-    }
+      const symptomsText = selectedSymptoms
+        .map(id => SYMPTOMS_LIST.find(s => s.id === id)?.label)
+        .filter(Boolean)
+        .join(", ");
+      if (symptomsText) {
+        parts.push(`Symptoms: ${symptomsText}`);
+      }
 
-    const badActions = [];
-    if (firstAidActions.tourniquet) badActions.push("Tourniquet");
-    if (firstAidActions.ice) badActions.push("Ice applied");
-    if (firstAidActions.cutWound) badActions.push("Wound cut");
-    if (badActions.length > 0) {
-      parts.push(`Contraindicated actions taken: ${badActions.join(", ")}`);
+      const badActions = [];
+      if (firstAidActions.tourniquet) badActions.push("Tourniquet");
+      if (firstAidActions.ice) badActions.push("Ice applied");
+      if (firstAidActions.cutWound) badActions.push("Wound cut");
+      if (badActions.length > 0) {
+        parts.push(`Contraindicated actions taken: ${badActions.join(", ")}`);
+      }
     }
 
     onChange(parts.join(" | "));
-  }, [result, selectedBodyPart, elapsedSeconds, selectedSymptoms, firstAidActions, biteTimePreset, onChange]);
+  }, [result, selectedBodyPart, elapsedSeconds, selectedSymptoms, firstAidActions, biteTimePreset, onChange, isAr, t]);
 
   const runInference = useCallback(async (canvas: HTMLCanvasElement) => {
     if (!modelRef.current) return;
@@ -529,17 +574,17 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-200">
             <Activity className="text-rose-500 h-5 w-5 animate-pulse" />
-            Bite Diagnostics & Time Tracker
+            {t("Bite Diagnostics & Time Tracker")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Log the bite location and track elapsed time to guide responders and first aid.
+            {t("Log the bite location and track elapsed time to guide responders and first aid.")}
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Layout for Body Map & Parts Selection */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Select Bite Location
+              {t("Select Bite Location")}
             </h4>
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="w-full sm:w-1/3 flex justify-center">
@@ -572,10 +617,10 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
           <div className="rounded-xl border border-slate-800 bg-slate-950/20 p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
               <ShieldAlert className="h-4 w-4 text-amber-500" />
-              First Aid Verification
+              {t("First Aid Verification")}
             </h4>
             <p className="text-xs text-muted-foreground">
-              Please verify if any of these actions have been taken (for clinical tracking):
+              {t("Please verify if any of these actions have been taken (for clinical tracking):")}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
@@ -585,7 +630,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                   onChange={(e) => setFirstAidActions(prev => ({ ...prev, tourniquet: e.target.checked }))}
                   className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
                 />
-                <span className="text-xs text-slate-300">Tourniquet Applied</span>
+                <span className="text-xs text-slate-300">{t("Tourniquet Applied")}</span>
               </label>
 
               <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
@@ -595,7 +640,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                   onChange={(e) => setFirstAidActions(prev => ({ ...prev, ice: e.target.checked }))}
                   className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
                 />
-                <span className="text-xs text-slate-300">Ice Applied</span>
+                <span className="text-xs text-slate-300">{t("Ice Applied")}</span>
               </label>
 
               <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
@@ -605,7 +650,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                   onChange={(e) => setFirstAidActions(prev => ({ ...prev, cutWound: e.target.checked }))}
                   className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
                 />
-                <span className="text-xs text-slate-300">Wound Cut / Sucked</span>
+                <span className="text-xs text-slate-300">{t("Wound Cut / Sucked")}</span>
               </label>
             </div>
 
@@ -614,18 +659,36 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               <div className="rounded-lg bg-red-950/45 border border-red-500/30 p-3 text-red-200/90 text-xs leading-relaxed space-y-1.5 animate-in fade-in duration-300">
                 <p className="font-bold flex items-center gap-1 text-red-400">
                   <AlertTriangle className="h-4 w-4 text-red-500 animate-bounce" />
-                  CRITICAL FIRST AID WARNING:
+                  {t("CRITICAL FIRST AID WARNING:")}
                 </p>
                 {firstAidActions.tourniquet && (
-                  <p>• <strong>Do NOT use tourniquets.</strong> Restricting blood flow traps venom in the limb, dramatically increasing tissue necrosis and risk of amputation without halting systemic spread.</p>
+                  <p>
+                    {isAr ? (
+                      <>• <strong>لا تستخدم رباطاً ضاغطاً (عاصبة).</strong> تقييد تدفق الدم يحبس السم في الطرف المصاب، مما يزيد من موت الأنسجة وخطر البتر دون وقف انتشار السم في الجسم.</>
+                    ) : (
+                      <>• <strong>Do NOT use tourniquets.</strong> Restricting blood flow traps venom in the limb, dramatically increasing tissue necrosis and risk of amputation without halting systemic spread.</>
+                    )}
+                  </p>
                 )}
                 {firstAidActions.ice && (
-                  <p>• <strong>Do NOT apply ice.</strong> Extreme cold constricts blood vessels and accelerates localized tissue damage.</p>
+                  <p>
+                    {isAr ? (
+                      <>• <strong>لا تضع ثلجاً.</strong> البرودة الشديدة تقبض الأوعية الدموية وتسرع تلف الأنسجة الموضعية.</>
+                    ) : (
+                      <>• <strong>Do NOT apply ice.</strong> Extreme cold constricts blood vessels and accelerates localized tissue damage.</>
+                    )}
+                  </p>
                 )}
                 {firstAidActions.cutWound && (
-                  <p>• <strong>Do NOT cut the wound or try to suck venom.</strong> This is ineffective and introduces severe infection risk while increasing bleeding.</p>
+                  <p>
+                    {isAr ? (
+                      <>• <strong>لا تشق الجرح أو تحاول مص السم.</strong> هذا الإجراء غير فعال ويزيد من خطر الإصابة بالعدوى وتفاقم النزيف.</>
+                    ) : (
+                      <>• <strong>Do NOT cut the wound or try to suck venom.</strong> This is ineffective and introduces severe infection risk while increasing bleeding.</>
+                    )}
+                  </p>
                 )}
-                <p className="mt-1 font-semibold text-red-300">Please release any tourniquets and stop icing or cutting immediately.</p>
+                <p className="mt-1 font-semibold text-red-300">{t("Please release any tourniquets and stop icing or cutting immediately.")}</p>
               </div>
             )}
           </div>
@@ -636,10 +699,10 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 flex items-center gap-1.5">
                   <Clock className="h-4 w-4 text-indigo-400" />
-                  Bite Time Tracker
+                  {t("Bite Time Tracker")}
                 </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Specify when the incident occurred to calculate envenomation windows.
+                  {t("Specify when the incident occurred to calculate envenomation windows.")}
                 </p>
               </div>
               
@@ -647,7 +710,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               <div className="flex items-center gap-2 bg-indigo-950/40 border border-indigo-500/30 rounded-lg px-3 py-1.5 self-start sm:self-auto">
                 <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
                 <span className="text-xs font-bold tracking-wider text-indigo-300 font-mono">
-                  {formatElapsed(elapsedSeconds)} elapsed
+                  {formatElapsed(elapsedSeconds)} {t("elapsed")}
                 </span>
               </div>
             </div>
@@ -673,7 +736,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                       : "bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-350"
                   }`}
                 >
-                  {preset.label}
+                  {t(preset.label)}
                 </button>
               ))}
             </div>
@@ -681,7 +744,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
             {/* Custom Time Picker */}
             {biteTimePreset === "custom" && (
               <div className="flex items-center gap-3 animate-in fade-in duration-300 mt-2">
-                <span className="text-xs text-slate-400">Specify Incident Time:</span>
+                <span className="text-xs text-slate-400">{t("Specify Incident Time:")}</span>
                 <input
                   type="time"
                   value={customTime}
@@ -695,7 +758,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
           {/* Clinical Advisory Timeline */}
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-              Clinical Advisory Timeline ({result ? `Tailored for ${result.species}` : "General Advisory"})
+              {t("Clinical Advisory Timeline")} ({result ? `${t("Tailored for")} ${result.species}` : t("General Advisory")})
             </h4>
             <div className="relative border-l border-slate-800 ml-3 pl-6 space-y-6">
               {timelinePhases.map((phase, idx) => {
@@ -730,10 +793,10 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                         {phase.title}
                       </p>
                       <p className="text-xs text-slate-400 mt-1">
-                        <span className="font-semibold text-slate-350">Symptoms:</span> {phase.symptoms}
+                        <span className="font-semibold text-slate-350">{t("Symptoms")}:</span> {phase.symptoms}
                       </p>
                       <p className="text-xs text-rose-200/80 mt-1.5 leading-relaxed">
-                        <span className="font-semibold text-rose-300">Action:</span> {phase.action}
+                        <span className="font-semibold text-rose-300">{t("Action")}:</span> {phase.action}
                       </p>
                     </div>
                   </div>
@@ -749,10 +812,10 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-slate-200">
             <span className="text-2xl">🧬</span>
-            Multimodal AI Identifier
+            {t("Multimodal AI Identifier")}
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Identify species using a photo, symptoms, or both for highest accuracy.
+            {t("Identify species using a photo, symptoms, or both for highest accuracy.")}
           </p>
         </CardHeader>
 
@@ -768,7 +831,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
               </svg>
               <span className="text-base font-semibold text-amber-300">
-                {modelLoading ? "⏳ Loading Image Engine..." : "📷 Add Photo"}
+                {modelLoading ? (isAr ? "⏳ جاري تحميل محرك الصور..." : "⏳ Loading Image Engine...") : t("Add Photo")}
               </span>
               <input
                 ref={fileInputRef}
@@ -789,11 +852,11 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
           {imagePreview && (
             <div className="relative overflow-hidden rounded-xl border border-amber-500/30">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagePreview} alt="Captured specimen" className="h-48 w-full object-cover" />
+              <img src={imagePreview} alt={t("Image Preview")} className="h-48 w-full object-cover" />
               {isAnalyzing && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
                   <div className="size-16 animate-ping rounded-full border-4 border-amber-400/50" />
-                  <p className="mt-4 text-sm font-semibold text-amber-300 animate-pulse">Analyzing Image…</p>
+                  <p className="mt-4 text-sm font-semibold text-amber-300 animate-pulse">{t("Analyzing Image…")}</p>
                 </div>
               )}
             </div>
@@ -806,13 +869,13 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               onClick={() => setShowSymptoms(!showSymptoms)}
               className="flex w-full items-center justify-between font-semibold text-slate-300"
             >
-              <span>🩺 {selectedSymptoms.length > 0 ? `${selectedSymptoms.length} Symptoms Added` : "Add Clinical Symptoms"}</span>
+              <span>🩺 {selectedSymptoms.length > 0 ? (isAr ? `${selectedSymptoms.length} أعراض مضافة` : `${selectedSymptoms.length} Symptoms Added`) : t("Add Clinical Symptoms")}</span>
               <span className="text-amber-500">{showSymptoms ? "▲" : "▼"}</span>
             </button>
             
             {showSymptoms && (
               <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
-                <p className="text-xs text-muted-foreground mb-3">Select any observed symptoms to refine the AI accuracy (Functions completely offline).</p>
+                <p className="text-xs text-muted-foreground mb-3">{t("Select any observed symptoms to refine the AI accuracy (Functions completely offline).")}</p>
                 {SYMPTOMS_LIST.map(sym => (
                   <label key={sym.id} className="flex items-start gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3 hover:bg-slate-800 cursor-pointer">
                     <input 
@@ -821,7 +884,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                       onChange={() => handleSymptomToggle(sym.id)}
                       className="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-900"
                     />
-                    <span className="text-sm text-slate-200">{sym.label}</span>
+                    <span className="text-sm text-slate-200">{isAr ? t(sym.label) : sym.label}</span>
                   </label>
                 ))}
               </div>
@@ -834,20 +897,20 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Identified Match
+                    {t("Identified Match")}
                   </p>
                   <p className="text-lg font-bold text-white">
                     {result.species}
                   </p>
                 </div>
                 <Badge className={result.dangerColor}>
-                  {result.dangerLevel === "extreme" ? "☠️ EXTREME" : result.dangerLevel === "high" ? "⚠️ HIGH" : "✅ LOW"}
+                  {result.dangerLevel === "extreme" ? `☠️ ${t("Extreme")}` : result.dangerLevel === "high" ? `⚠️ ${t("High")}` : `✅ ${t("Low")}`}
                 </Badge>
               </div>
 
               <div>
                 <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                  <span>Confidence ({imagePredictions && selectedSymptoms.length > 0 ? "Image + Symptoms" : imagePredictions ? "Image Only" : "Symptoms Only"})</span>
+                  <span>{t("Confidence")} ({imagePredictions && selectedSymptoms.length > 0 ? t("Image + Symptoms") : imagePredictions ? t("Image Only") : t("Symptoms Only")})</span>
                   <span className="font-mono font-bold text-amber-400">{result.confidence}%</span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-slate-700">
@@ -856,7 +919,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
               </div>
 
               <div className="rounded-lg bg-slate-900/60 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">Recommended Action</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">{t("Recommended Action")}</p>
                 <p className="mt-1 text-sm text-slate-200">{result.action}</p>
               </div>
 
@@ -866,16 +929,16 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
                 onClick={handleReset}
                 className="mt-2 w-full rounded-lg border border-amber-500/30 py-2.5 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/10 active:scale-[0.98]"
               >
-                🔄 Reset & Scan Another
+                {t("Reset & Scan Another")}
               </button>
             </div>
           )}
         </CardContent>
 
         <CardFooter className="justify-center flex-col gap-1">
-          <p className="text-center text-xs text-muted-foreground">⚡ Multimodal AI Engine — Fully Offline</p>
+          <p className="text-center text-xs text-muted-foreground">{t("⚡ Multimodal AI Engine — Fully Offline")}</p>
           <p className="text-center text-[10px] text-amber-500/70 font-mono">
-            {modelLoading ? "Loading model weights (1.9MB)..." : modelError ? `Engine error: ${modelError}` : "AI Engine: Ready (Loaded Offline)"}
+            {modelLoading ? t("Loading model weights (1.9MB)...") : modelError ? `${isAr ? "خطأ في المحرك" : "Engine error"}: ${modelError}` : t("AI Engine: Ready (Loaded Offline)")}
           </p>
         </CardFooter>
       </Card>

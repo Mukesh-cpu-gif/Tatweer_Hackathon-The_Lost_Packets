@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AnimalOption {
   id: string;
@@ -66,6 +67,8 @@ interface LivestockSelectorProps {
 }
 
 export default function LivestockSelector({ onChange }: LivestockSelectorProps) {
+  const { t, isAr } = useLanguage();
+
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalOption>(ANIMALS[0]);
   const [ageInput, setAgeInput] = useState<string>("2");
   const [ageUnit, setAgeUnit] = useState<"years" | "months">("years");
@@ -77,12 +80,19 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
   }, [selectedAnimal, ageNumber, ageUnit]);
 
   const summaryText = useMemo(() => {
+    const animalLabel = isAr ? selectedAnimal.labelAr : selectedAnimal.label;
     if (ageNumber <= 0) {
-      return `${selectedAnimal.label} (Age unknown)`;
+      return isAr ? `${animalLabel} (العمر غير معروف)` : `${selectedAnimal.label} (Age unknown)`;
     }
-    const unitLabel = ageUnit === "years" ? (ageNumber === 1 ? "year" : "years") : (ageNumber === 1 ? "month" : "months");
+    const unitLabel = isAr 
+      ? (ageUnit === "years" ? "سنة" : "شهر") 
+      : (ageUnit === "years" ? (ageNumber === 1 ? "year" : "years") : (ageNumber === 1 ? "month" : "months"));
+    
+    if (isAr) {
+      return `${animalLabel} - ${ageClassification.groupAr} (العمر: ${ageInput} ${unitLabel})`;
+    }
     return `${selectedAnimal.label} - ${ageClassification.group} (${ageInput} ${unitLabel} old)`;
-  }, [selectedAnimal, ageInput, ageUnit, ageClassification]);
+  }, [selectedAnimal, ageInput, ageUnit, ageClassification, isAr, ageNumber]);
 
   // Notify parent whenever selection details change
   useEffect(() => {
@@ -95,17 +105,17 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
       <CardHeader className="pb-3 border-b border-zinc-800/50">
         <CardTitle className="flex items-center gap-2 text-slate-200 text-sm font-bold tracking-widest uppercase">
           <span className="text-xl">🐪</span>
-          Animal Profile Creator
+          {t("Animal Profile Creator")}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Select animal type and specify age for specialized responder guidance.
+          {t("Select animal type and specify age for specialized responder guidance.")}
         </p>
       </CardHeader>
 
       <CardContent className="pt-4 space-y-5">
         {/* ── Animal Selection Grid ────────────────────────────── */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">Select Animal</label>
+          <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">{t("Select Animal")}</label>
           <div className="grid grid-cols-3 gap-2.5">
             {ANIMALS.map((animal) => {
               const isSelected = selectedAnimal.id === animal.id;
@@ -123,15 +133,15 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
                   <span className="text-2xl mb-1.5 transition-transform duration-300 group-hover:scale-110">
                     {animal.emoji}
                   </span>
-                  <span className={`text-[11px] font-semibold tracking-wide uppercase transition-colors ${
+                  <span className={`text-[11px] font-semibold tracking-wide uppercase transition-colors text-center ${
                     isSelected ? "text-indigo-200" : "text-zinc-400 group-hover:text-zinc-200"
                   }`}>
-                    {animal.label}
+                    {isAr ? animal.labelAr : animal.label}
                   </span>
-                  <span className={`text-[9px] font-medium mt-0.5 opacity-55 ${
+                  <span className={`text-[9px] font-medium mt-0.5 opacity-55 text-center ${
                     isSelected ? "text-indigo-300" : "text-zinc-500"
                   }`} dir="rtl">
-                    {animal.labelAr}
+                    {isAr ? animal.label : animal.labelAr}
                   </span>
                 </button>
               );
@@ -143,7 +153,7 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="animal-age" className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">
-              Age Value
+              {t("Age Value")}
             </label>
             <Input
               id="animal-age"
@@ -159,7 +169,7 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
 
           <div className="space-y-2">
             <label className="text-xs font-semibold text-zinc-400 tracking-wider uppercase">
-              Age Unit
+              {t("Age Unit")}
             </label>
             <div className="grid grid-cols-2 bg-zinc-950/50 border border-zinc-800 rounded-lg p-0.5 h-8.5 items-center">
               <button
@@ -171,7 +181,7 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                Years
+                {t("Years")}
               </button>
               <button
                 type="button"
@@ -182,7 +192,7 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
-                Months
+                {t("Months")}
               </button>
             </div>
           </div>
@@ -192,19 +202,19 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
         {ageNumber > 0 && (
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-950/10 p-3.5 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">Computed Classification</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">{t("Computed Classification")}</p>
               <p className="text-sm font-bold text-zinc-200 mt-1">
-                {ageClassification.group}
+                {isAr ? ageClassification.groupAr : ageClassification.group}
                 <span className="text-xs text-indigo-200/50 font-medium ml-1.5" dir="rtl">
-                  ({ageClassification.groupAr})
+                  ({isAr ? ageClassification.group : ageClassification.groupAr})
                 </span>
               </p>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Age: {ageInput} {ageUnit}
+                {t("Age:")} {ageInput} {isAr ? (ageUnit === "years" ? "سنة" : "شهر") : ageUnit}
               </p>
             </div>
             <Badge className="bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-bold tracking-widest uppercase">
-              {selectedAnimal.label}
+              {isAr ? selectedAnimal.labelAr : selectedAnimal.label}
             </Badge>
           </div>
         )}

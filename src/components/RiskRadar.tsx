@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { subscribeToWeatherAlerts } from "@/lib/db";
 import type { WeatherAlert } from "@/lib/mockData";
 import { AlertTriangle, ShieldAlert, AlertCircle, X } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
 
 /**
  * RiskRadar — Proactive weather alert system for Al Qua'a.
@@ -12,6 +13,7 @@ import { AlertTriangle, ShieldAlert, AlertCircle, X } from "lucide-react";
 export default function RiskRadar() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<WeatherAlert[]>([]);
+  const { t, isAr } = useLanguage();
 
   useEffect(() => {
     const unsubscribe = subscribeToWeatherAlerts((liveAlerts) => {
@@ -39,6 +41,9 @@ export default function RiskRadar() {
     <div className="space-y-4">
       {visibleAlerts.map((alert) => {
         const Icon = IconMap[alert.severity];
+        const displayTitle = isAr ? alert.titleAr : alert.title;
+        const displayDescription = isAr ? (alert.descriptionAr || alert.description) : alert.description;
+
         return (
           <div
             key={alert.id}
@@ -46,25 +51,24 @@ export default function RiskRadar() {
           >
             <button
               onClick={() => setDismissed((prev) => new Set(prev).add(alert.id))}
-              className="absolute top-3 right-3 text-white/30 hover:text-white/80 transition-colors"
+              className={`absolute top-3 ${isAr ? "left-3" : "right-3"} text-white/30 hover:text-white/80 transition-colors`}
               aria-label="Dismiss alert"
             >
               <X size={18} strokeWidth={1.5} />
             </button>
 
-            <div className="flex items-start gap-3 pr-8">
+            <div className="flex items-start gap-3 pr-8 pl-2">
               <div className="mt-0.5">
                 <Icon size={22} strokeWidth={1.5} className="opacity-90" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-bold text-[10px] uppercase tracking-widest opacity-60">
-                    {alert.type}
+                    {t(alert.type)}
                   </span>
                 </div>
-                <p className="font-semibold text-sm tracking-wide uppercase">{alert.title}</p>
-                <p className="text-xs opacity-60 mt-0.5 font-medium" dir="rtl">{alert.titleAr}</p>
-                <p className="text-sm mt-2 opacity-70 leading-relaxed">{alert.description}</p>
+                <p className="font-semibold text-sm tracking-wide uppercase">{displayTitle}</p>
+                <p className="text-sm mt-2 opacity-70 leading-relaxed">{displayDescription}</p>
               </div>
             </div>
           </div>

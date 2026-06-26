@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import "./globals.css";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 const productionServiceWorkerScript = `
   if ('serviceWorker' in navigator) {
@@ -91,7 +92,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="antialiased min-h-screen bg-background text-foreground">
-        {children}
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
         {process.env.NODE_ENV === "production" && (
           <Script
             id="register-service-worker"

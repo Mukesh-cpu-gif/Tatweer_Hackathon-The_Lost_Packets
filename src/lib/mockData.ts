@@ -32,7 +32,7 @@ export interface SOSType {
 }
 
 export interface Responder {
-  id: number;
+  id: string;
   name: string;
   phone: string;
   skills: string[];
@@ -209,7 +209,7 @@ export const sosTypes: SOSType[] = [
 // ─── Mock Responders (Al Qua'a Volunteers) ─────────────────────────
 export const mockResponders: Responder[] = [
   {
-    id: 1,
+    id: "1",
     name: "Ahmed Al Dhaheri",
     phone: "+971501234567",
     skills: ["Medical", "First Aid", "4x4"],
@@ -218,7 +218,7 @@ export const mockResponders: Responder[] = [
     vehicleType: "Toyota Land Cruiser",
   },
   {
-    id: 2,
+    id: "2",
     name: "Mohammed Al Kaabi",
     phone: "+971502345678",
     skills: ["Winch", "Heavy Machinery", "4x4"],
@@ -227,7 +227,7 @@ export const mockResponders: Responder[] = [
     vehicleType: "Nissan Patrol (Winch)",
   },
   {
-    id: 3,
+    id: "3",
     name: "Ali Al Mansouri",
     phone: "+971503456789",
     skills: ["Livestock Expert", "Veterinary", "4x4"],
@@ -236,7 +236,7 @@ export const mockResponders: Responder[] = [
     vehicleType: "Toyota Hilux",
   },
   {
-    id: 4,
+    id: "4",
     name: "Saeed Al Rumaithi",
     phone: "+971504567890",
     skills: ["Medical", "Anti-Venom"],
@@ -245,7 +245,7 @@ export const mockResponders: Responder[] = [
     vehicleType: "Ford Raptor",
   },
   {
-    id: 5,
+    id: "5",
     name: "Khalid Al Shamsi",
     phone: "+971505678901",
     skills: ["Plumbing", "Heavy Machinery", "Winch"],

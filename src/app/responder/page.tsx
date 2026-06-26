@@ -116,7 +116,8 @@ export default function ResponderDashboard() {
           location: currentProfile.location ?? null,
         });
         setIsAvailable(currentProfile.available);
-        setIsEditingProfile(false);
+        const isComplete = currentProfile.name && currentProfile.phone && currentProfile.vehicleType && currentProfile.skills.length > 0;
+        setIsEditingProfile(!isComplete);
       } else {
         setProfileForm(createEmptyProfileForm());
         setIsAvailable(true);

@@ -5,35 +5,23 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChevronLeft, Phone, Mail, Shield, AlertCircle } from "lucide-react";
+import { ChevronLeft, Mail, Shield, AlertCircle, User as UserIcon } from "lucide-react";
 import { auth, isFirebaseConfigured, missingFirebaseEnv } from "@/lib/firebase";
+import { saveResponderProfile } from "@/lib/db";
 import { FirebaseError } from "firebase/app";
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
+  createUserWithEmailAndPassword
 } from "firebase/auth";
 import Link from "next/link";
 
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-  }
-}
-
-type AuthMode = "default" | "email" | "phone" | "otp";
+type AuthMode = "default" | "login" | "signup";
 const AUTH_TIMEOUT_MS = 15000;
 
 const getErrorMessage = (error: unknown, fallback: string) => {
   return error instanceof Error ? error.message : fallback;
-};
-
-const hasAuthCode = (error: unknown, codes: string[]) => {
-  return error instanceof FirebaseError && codes.includes(error.code);
 };
 
 const withAuthTimeout = async <T,>(operation: Promise<T>, message: string) => {
@@ -60,13 +48,10 @@ export default function LoginPage() {
   const [authMode, setAuthMode] = useState<AuthMode>("default");
   
   // Form States
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [otp, setOtp] = useState("");
-  
-  // Phone Auth Object
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
 
   const canUseFirebaseAuth = isFirebaseConfigured && !loading;
 
@@ -89,88 +74,56 @@ export default function LoginPage() {
     }
   };
 
-  // ─── Email & Password Auth ──────────────────────────────────────────────
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  // ─── Login Auth ──────────────────────────────────────────────────────────────
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFirebaseConfigured) return;
     setLoading(true);
     setError(null);
     try {
-      // First try to sign in
       await withAuthTimeout(
         signInWithEmailAndPassword(auth, email, password),
         "Firebase sign-in did not respond. Check Firebase config and authorized domains."
       );
       router.push("/responder");
     } catch (error: unknown) {
-      // If user not found, auto-create account for hackathon purposes
-      if (hasAuthCode(error, ["auth/user-not-found", "auth/invalid-credential"])) {
-        try {
-          await withAuthTimeout(
-            createUserWithEmailAndPassword(auth, email, password),
-            "Firebase account creation did not respond. Check Firebase config and authorized domains."
-          );
-          router.push("/responder");
-        } catch (createError: unknown) {
-          setError(getErrorMessage(createError, "Failed to create account."));
-          setLoading(false);
-        }
-      } else {
-        setError(getErrorMessage(error, "Authentication failed."));
-        setLoading(false);
-      }
+      setError(getErrorMessage(error, "Authentication failed. Please check your credentials."));
+      setLoading(false);
     }
   };
 
-  // ─── Phone Auth (Step 1: Send SMS) ───────────────────────────────────────
-  const handleSendOtp = async (e: React.FormEvent) => {
+  // ─── Sign Up Auth ────────────────────────────────────────────────────────
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFirebaseConfigured) return;
+    
+    if (!name || !phoneNumber || !email || !password) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
-
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-          size: "invisible",
+      const userCredential = await withAuthTimeout(
+        createUserWithEmailAndPassword(auth, email, password),
+        "Firebase account creation did not respond. Check Firebase config and authorized domains."
+      );
+      
+      // Save initial profile data to Firestore
+      if (userCredential.user) {
+        await saveResponderProfile(userCredential.user.uid, {
+          name: name.trim(),
+          phone: phoneNumber.trim(),
+          vehicleType: "",
+          skills: [],
+          available: false,
         });
       }
-
-      const verifier = window.recaptchaVerifier;
-      if (!verifier) {
-        throw new Error("Could not initialize phone verification.");
-      }
-
-      // Format number ensuring it has a + prefix
-      const formattedNumber = phoneNumber.startsWith('+') ? phoneNumber : `+${phoneNumber}`;
-      const confirmation = await withAuthTimeout(
-        signInWithPhoneNumber(auth, formattedNumber, verifier),
-        "Firebase phone sign-in did not respond. Check phone auth and authorized domains."
-      );
-      setConfirmationResult(confirmation);
-      setAuthMode("otp");
-    } catch (error: unknown) {
-      console.error(error);
-      setError(getErrorMessage(error, "Failed to send SMS code."));
-    }
-    setLoading(false);
-  };
-
-  // ─── Phone Auth (Step 2: Verify OTP) ─────────────────────────────────────
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!confirmationResult) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      await withAuthTimeout(
-        confirmationResult.confirm(otp),
-        "Firebase OTP verification did not respond. Check phone auth and authorized domains."
-      );
+      
       router.push("/responder");
-    } catch {
-      setError("Invalid verification code.");
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Failed to create account. Email might already be in use."));
       setLoading(false);
     }
   };
@@ -199,29 +152,29 @@ export default function LoginPage() {
       </div>
 
       <Button 
-        onClick={() => setAuthMode("phone")}
-        disabled={!canUseFirebaseAuth}
-        variant="outline"
-        className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
-      >
-        <Phone size={18} className="mr-3 text-indigo-400" />
-        Continue with Phone
-      </Button>
-
-      <Button 
-        onClick={() => setAuthMode("email")}
+        onClick={() => setAuthMode("login")}
         disabled={!canUseFirebaseAuth}
         variant="outline"
         className="w-full h-12 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
       >
         <Mail size={18} className="mr-3 text-indigo-400" />
-        Continue with Email
+        Sign In with Email
+      </Button>
+
+      <Button 
+        onClick={() => setAuthMode("signup")}
+        disabled={!canUseFirebaseAuth}
+        variant="outline"
+        className="w-full h-12 mt-3 bg-zinc-950/50 border-zinc-700 hover:bg-zinc-800 text-zinc-300 font-semibold tracking-wide"
+      >
+        <UserIcon size={18} className="mr-3 text-indigo-400" />
+        Create an Account
       </Button>
     </>
   );
 
-  const renderEmailView = () => (
-    <form onSubmit={handleEmailAuth} className="space-y-4">
+  const renderLoginView = () => (
+    <form onSubmit={handleLogin} className="space-y-4">
       <div className="space-y-2">
         <Input 
           type="email" 
@@ -241,7 +194,7 @@ export default function LoginPage() {
         />
       </div>
       <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
-        {loading ? "Authenticating..." : "Sign In / Register"}
+        {loading ? "Authenticating..." : "Sign In"}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setAuthMode("default")} className="w-full text-zinc-400 hover:text-white">
         Back
@@ -249,47 +202,48 @@ export default function LoginPage() {
     </form>
   );
 
-  const renderPhoneView = () => (
-    <form onSubmit={handleSendOtp} className="space-y-4">
+  const renderSignupView = () => (
+    <form onSubmit={handleSignup} className="space-y-4">
       <div className="space-y-2">
         <Input 
+          type="text" 
+          placeholder="Full Name" 
+          required 
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="bg-zinc-950/50 border-zinc-700 text-white h-12"
+        />
+        <Input 
           type="tel" 
-          placeholder="+971501234567" 
+          placeholder="Phone Number (+971...)" 
           required 
           value={phoneNumber}
           onChange={(e) => setPhoneNumber(e.target.value)}
           className="bg-zinc-950/50 border-zinc-700 text-white h-12"
         />
-        <p className="text-xs text-zinc-500 px-1">Include country code (e.g., +971)</p>
+        <Input 
+          type="email" 
+          placeholder="Email Address" 
+          required 
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="bg-zinc-950/50 border-zinc-700 text-white h-12"
+        />
+        <Input 
+          type="password" 
+          placeholder="Password (Min 6 characters)" 
+          required 
+          minLength={6}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="bg-zinc-950/50 border-zinc-700 text-white h-12"
+        />
       </div>
-      <div id="recaptcha-container"></div>
       <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-indigo-600 hover:bg-indigo-500 text-white font-bold tracking-wider">
-        {loading ? "Sending SMS..." : "Send Verification Code"}
+        {loading ? "Creating Account..." : "Sign Up & Continue"}
       </Button>
       <Button type="button" variant="ghost" onClick={() => setAuthMode("default")} className="w-full text-zinc-400 hover:text-white">
         Back
-      </Button>
-    </form>
-  );
-
-  const renderOtpView = () => (
-    <form onSubmit={handleVerifyOtp} className="space-y-4">
-      <div className="space-y-2">
-        <Input 
-          type="text" 
-          placeholder="6-Digit Code" 
-          required 
-          maxLength={6}
-          value={otp}
-          onChange={(e) => setOtp(e.target.value)}
-          className="bg-zinc-950/50 border-zinc-700 text-white h-12 text-center text-lg tracking-[0.5em]"
-        />
-      </div>
-      <Button type="submit" disabled={!canUseFirebaseAuth} className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white font-bold tracking-wider">
-        {loading ? "Verifying..." : "Verify & Sign In"}
-      </Button>
-      <Button type="button" variant="ghost" onClick={() => setAuthMode("phone")} className="w-full text-zinc-400 hover:text-white">
-        Try another number
       </Button>
     </form>
   );
@@ -330,12 +284,11 @@ export default function LoginPage() {
         <Card className="bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 shadow-none">
           <CardHeader className="pb-4 border-b border-zinc-800/50 text-center">
             <CardTitle className="text-sm font-bold tracking-widest uppercase text-zinc-300">
-              {authMode === "otp" ? "Verify Phone" : "Sign In to Dispatch"}
+              {authMode === "login" ? "Sign In to Dispatch" : authMode === "signup" ? "Create Responder Account" : "Sign In to Dispatch"}
             </CardTitle>
             <CardDescription className="text-xs text-zinc-500 mt-1">
-              {authMode === "email" ? "Enter your email and password" : 
-               authMode === "phone" ? "We'll send you an SMS verification code" :
-               authMode === "otp" ? "Enter the 6-digit code sent via SMS" :
+              {authMode === "login" ? "Enter your email and password" : 
+               authMode === "signup" ? "Provide your details to join the network" :
                "Select your preferred authentication method"}
             </CardDescription>
           </CardHeader>
@@ -358,9 +311,8 @@ export default function LoginPage() {
             )}
 
             {authMode === "default" && renderDefaultView()}
-            {authMode === "email" && renderEmailView()}
-            {authMode === "phone" && renderPhoneView()}
-            {authMode === "otp" && renderOtpView()}
+            {authMode === "login" && renderLoginView()}
+            {authMode === "signup" && renderSignupView()}
 
           </CardContent>
         </Card>

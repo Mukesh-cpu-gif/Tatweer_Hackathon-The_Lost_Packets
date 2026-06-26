@@ -131,7 +131,7 @@ const toResponderProfile = (id: string, data: Record<string, unknown>): Responde
   const vehicleType = typeof data.vehicleType === "string" ? data.vehicleType.trim() : "";
   const skills = readStringArray(data.skills);
 
-  if (!name || !phone || !vehicleType || skills.length === 0) {
+  if (!name && !phone) {
     return null;
   }
 

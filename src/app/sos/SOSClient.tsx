@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Navigation, Copy, CheckCircle2, ChevronLeft, Send, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet } from "lucide-react";
 import LivestockSelector from "@/components/LivestockSelector";
 import FuelCalculator from "@/components/FuelCalculator";
+import DeflationGuide from "@/components/DeflationGuide";
 
 const iconMap: Record<string, React.ElementType> = {
   Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet
@@ -43,32 +44,32 @@ export default function SOSClient() {
   const typeId = searchParams.get("type");
   const sosType = sosTypes.find((t) => t.id === typeId);
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() =>
-    hasBrowserGeolocation() ? null : fallbackCoords
-  );
-  const [geoError, setGeoError] = useState<string | null>(() =>
-    hasBrowserGeolocation() ? null : "Geolocation not supported. Using fallback coordinates."
-  );
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [queued, setQueued] = useState(false);
   const [livestockInfo, setLivestockInfo] = useState<string>("");
   const [fuelRequestInfo, setFuelRequestInfo] = useState<string>("");
+  const [stuckVehicleInfo, setStuckVehicleInfo] = useState<string>("");
   const [responders, setResponders] = useState<Responder[]>([]);
 
   useEffect(() => {
-    if (!hasBrowserGeolocation()) return;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
-      },
-      (error) => {
-        console.error("Geo error:", error);
-        setGeoError("Using fallback Al Qua'a coordinates.");
-        setCoords(fallbackCoords);
-      },
-      { enableHighAccuracy: true, timeout: 5000 }
-    );
+    if (typeof window !== "undefined" && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCoords({ lat: position.coords.latitude, lng: position.coords.longitude });
+        },
+        (error) => {
+          console.error("Geo error:", error);
+          setGeoError("Using fallback Al Qua'a coordinates.");
+          setCoords(fallbackCoords);
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      setGeoError("Geolocation not supported. Using fallback coordinates.");
+      setCoords(fallbackCoords);
+    }
   }, []);
 
   useEffect(() => registerSosSync(), []);
@@ -122,6 +123,8 @@ export default function SOSClient() {
         extraInfo = livestockInfo || "Sick livestock reported";
       } else if (sosType.id === "out_of_fuel") {
         extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+      } else if (sosType.id === "vehicle_stuck") {
+        extraInfo = stuckVehicleInfo || "Stranded vehicle stuck in sand";
       }
       await createIncident(sosType.id, coords, "Emergency Requester", extraInfo);
       setTimeout(() => setQueued(false), 2000);
@@ -142,6 +145,8 @@ export default function SOSClient() {
       extraInfo = livestockInfo || "Sick livestock reported";
     } else if (sosType.id === "out_of_fuel") {
       extraInfo = fuelRequestInfo || "Stranded vehicle requires fuel";
+    } else if (sosType.id === "vehicle_stuck") {
+      extraInfo = stuckVehicleInfo || "Stranded vehicle stuck in sand";
     }
     const smsLink = generateSmsDeepLink(
       phone,
@@ -244,6 +249,10 @@ export default function SOSClient() {
 
         {typeId === "out_of_fuel" && (
           <FuelCalculator coordinates={coords} onChange={setFuelRequestInfo} />
+        )}
+
+        {typeId === "vehicle_stuck" && (
+          <DeflationGuide onChange={setStuckVehicleInfo} />
         )}
 
         <div className="space-y-4">

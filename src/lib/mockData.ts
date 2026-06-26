@@ -17,10 +17,18 @@ export interface SOSType {
   label: string;
   labelAr: string;
   icon: string;
+  lucideIconName?: string;
   description: string;
   requiredSkills: string[];
   firstAid: string[];
   color: string;
+  styleConfig?: {
+    bg: string;
+    border: string;
+    text: string;
+    hoverBg: string;
+    iconColor: string;
+  };
 }
 
 export interface Responder {
@@ -62,6 +70,7 @@ export const sosTypes: SOSType[] = [
     label: "Snake Bite",
     labelAr: "لدغة أفعى",
     icon: "🐍",
+    lucideIconName: "Activity",
     description: "Venomous snake bite requiring immediate anti-venom",
     requiredSkills: ["Medical", "Anti-Venom"],
     firstAid: [
@@ -72,12 +81,20 @@ export const sosTypes: SOSType[] = [
       "If possible, photograph the snake from a safe distance.",
     ],
     color: "from-red-600 to-red-800",
+    styleConfig: {
+      bg: "bg-rose-500/10",
+      border: "border-rose-500/30",
+      text: "text-rose-400",
+      hoverBg: "hover:bg-rose-500/20",
+      iconColor: "text-rose-500",
+    },
   },
   {
     id: "scorpion_sting",
     label: "Scorpion Sting",
     labelAr: "لدغة عقرب",
     icon: "🦂",
+    lucideIconName: "Bug",
     description: "Scorpion sting — may require anti-venom",
     requiredSkills: ["Medical"],
     firstAid: [
@@ -87,12 +104,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT cut the wound or try to suck the venom.",
     ],
     color: "from-orange-600 to-red-700",
+    styleConfig: {
+      bg: "bg-orange-500/10",
+      border: "border-orange-500/30",
+      text: "text-orange-400",
+      hoverBg: "hover:bg-orange-500/20",
+      iconColor: "text-orange-500",
+    },
   },
   {
     id: "medical",
     label: "Medical Assist",
     labelAr: "مساعدة طبية",
     icon: "🏥",
+    lucideIconName: "HeartPulse",
     description: "General medical emergency or heatstroke",
     requiredSkills: ["Medical", "First Aid"],
     firstAid: [
@@ -102,12 +127,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT give water to an unconscious person.",
     ],
     color: "from-rose-600 to-pink-800",
+    styleConfig: {
+      bg: "bg-pink-500/10",
+      border: "border-pink-500/30",
+      text: "text-pink-400",
+      hoverBg: "hover:bg-pink-500/20",
+      iconColor: "text-pink-500",
+    },
   },
   {
     id: "vehicle_stuck",
     label: "Vehicle Stuck",
     labelAr: "مركبة عالقة",
     icon: "🚜",
+    lucideIconName: "Tractor",
     description: "Vehicle stuck in sand or broken down in the desert",
     requiredSkills: ["Winch", "4x4", "Heavy Machinery"],
     firstAid: [
@@ -117,12 +150,20 @@ export const sosTypes: SOSType[] = [
       "Use a reflective surface to signal for help during daylight.",
     ],
     color: "from-amber-600 to-yellow-800",
+    styleConfig: {
+      bg: "bg-amber-500/10",
+      border: "border-amber-500/30",
+      text: "text-amber-400",
+      hoverBg: "hover:bg-amber-500/20",
+      iconColor: "text-amber-500",
+    },
   },
   {
     id: "sick_livestock",
     label: "Sick Livestock",
     labelAr: "مواشي مريضة",
     icon: "🐪",
+    lucideIconName: "Stethoscope",
     description: "Camel or livestock medical emergency",
     requiredSkills: ["Livestock Expert", "Veterinary"],
     firstAid: [
@@ -132,12 +173,20 @@ export const sosTypes: SOSType[] = [
       "Do NOT administer medication without vet guidance.",
     ],
     color: "from-amber-700 to-orange-900",
+    styleConfig: {
+      bg: "bg-yellow-500/10",
+      border: "border-yellow-500/30",
+      text: "text-yellow-400",
+      hoverBg: "hover:bg-yellow-500/20",
+      iconColor: "text-yellow-500",
+    },
   },
   {
     id: "water_emergency",
     label: "Water Emergency",
     labelAr: "طوارئ مياه",
     icon: "💧",
+    lucideIconName: "Droplet",
     description: "Water pump failure or supply cut-off",
     requiredSkills: ["Plumbing", "Heavy Machinery"],
     firstAid: [
@@ -146,6 +195,13 @@ export const sosTypes: SOSType[] = [
       "Contact your nearest neighbor for emergency supply.",
     ],
     color: "from-blue-600 to-cyan-800",
+    styleConfig: {
+      bg: "bg-cyan-500/10",
+      border: "border-cyan-500/30",
+      text: "text-cyan-400",
+      hoverBg: "hover:bg-cyan-500/20",
+      iconColor: "text-cyan-500",
+    },
   },
 ];
 

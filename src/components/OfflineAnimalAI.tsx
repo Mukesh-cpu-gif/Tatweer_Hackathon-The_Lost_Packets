@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Activity, AlertTriangle, Clock, ShieldAlert, Check } from "lucide-react";
 import type { LayersModel, Tensor } from "@tensorflow/tfjs";
 import { IMAGENET_CLASSES } from "@tensorflow-models/mobilenet/dist/imagenet_classes";
 
@@ -63,7 +64,49 @@ const SPECIES_PROFILES: Record<string, SpeciesProfile> = {
   }
 };
 
-export default function OfflineAnimalAI() {
+const BodyMap = ({ selected, onSelect }: { selected: string; onSelect: (part: string) => void }) => {
+  const parts = [
+    { id: "Head & Neck", label: "Head & Neck", path: "M 80,15 A 8,8 0 1,1 80,31 A 8,8 0 1,1 80,15 M 78,31 L 78,35 L 82,35 L 82,31 Z" },
+    { id: "Torso", label: "Torso", path: "M 70,36 L 90,36 L 88,80 L 72,80 Z" },
+    { id: "Right Arm", label: "Right Arm", path: "M 69,37 L 55,75 L 59,77 L 69,45 Z" },
+    { id: "Left Arm", label: "Left Arm", path: "M 91,37 L 105,75 L 101,77 L 91,45 Z" },
+    { id: "Right Leg", label: "Right Leg", path: "M 72,81 L 68,135 L 74,135 L 79,81 Z" },
+    { id: "Left Leg", label: "Left Leg", path: "M 88,81 L 92,135 L 86,135 L 81,81 Z" },
+    { id: "Right Foot", label: "Right Foot", path: "M 68,136 L 62,143 L 73,143 L 74,136 Z" },
+    { id: "Left Foot", label: "Left Foot", path: "M 92,136 L 98,143 L 87,143 L 86,136 Z" },
+  ];
+
+  return (
+    <div className="flex flex-col items-center justify-center p-3 bg-slate-950/40 border border-slate-800/80 rounded-xl relative overflow-hidden h-[180px] w-[120px]">
+      <svg viewBox="50 10 60 140" className="h-full w-auto filter drop-shadow-[0_0_8px_rgba(244,63,94,0.15)]">
+        <g className="opacity-20">
+          {parts.map(p => (
+            <path key={`bg-${p.id}`} d={p.path} fill="#475569" stroke="#334155" strokeWidth="0.5" />
+          ))}
+        </g>
+        {parts.map(p => {
+          const isSelected = selected === p.id;
+          return (
+            <path
+              key={p.id}
+              d={p.path}
+              className={`transition-all duration-300 cursor-pointer ${
+                isSelected
+                  ? "fill-rose-500 stroke-rose-300 stroke-[1.2px] animate-pulse drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]"
+                  : "fill-slate-800 hover:fill-slate-700 stroke-slate-700 stroke-[0.5px]"
+              }`}
+              onClick={() => onSelect(p.id)}
+            >
+              <title>{p.label}</title>
+            </path>
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
+export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string) => void }) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
@@ -74,10 +117,101 @@ export default function OfflineAnimalAI() {
   const [modelLoading, setModelLoading] = useState(false);
   const [modelError, setModelError] = useState<string | null>(null);
   const [showSymptoms, setShowSymptoms] = useState(false);
+
+  // New Diagnostics & Timer States
+  const [selectedBodyPart, setSelectedBodyPart] = useState<string>("");
+  const [firstAidActions, setFirstAidActions] = useState<{
+    tourniquet: boolean;
+    ice: boolean;
+    cutWound: boolean;
+  }>({
+    tourniquet: false,
+    ice: false,
+    cutWound: false,
+  });
+  const [biteTimePreset, setBiteTimePreset] = useState<string>("just_now");
+  const [customTime, setCustomTime] = useState<string>("");
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const modelRef = useRef<LayersModel | null>(null);
+
+  // Calculate reference bite time
+  const biteTime = useMemo(() => {
+    const now = new Date();
+    if (biteTimePreset === "just_now") {
+      return now;
+    }
+    if (biteTimePreset === "5m") {
+      return new Date(now.getTime() - 5 * 60000);
+    }
+    if (biteTimePreset === "15m") {
+      return new Date(now.getTime() - 15 * 60000);
+    }
+    if (biteTimePreset === "30m") {
+      return new Date(now.getTime() - 30 * 60000);
+    }
+    if (biteTimePreset === "1h") {
+      return new Date(now.getTime() - 60 * 60000);
+    }
+    if (biteTimePreset === "2h") {
+      return new Date(now.getTime() - 120 * 60000);
+    }
+    if (biteTimePreset === "custom" && customTime) {
+      const [hours, minutes] = customTime.split(":").map(Number);
+      const customDate = new Date();
+      customDate.setHours(hours);
+      customDate.setMinutes(minutes);
+      customDate.setSeconds(0);
+      if (customDate.getTime() > now.getTime()) {
+        customDate.setDate(customDate.getDate() - 1);
+      }
+      return customDate;
+    }
+    return now;
+  }, [biteTimePreset, customTime]);
+
+  // Tick elapsed stopwatch timer
+  useEffect(() => {
+    const updateElapsed = () => {
+      const diff = Math.floor((Date.now() - biteTime.getTime()) / 1000);
+      setElapsedSeconds(diff >= 0 ? diff : 0);
+    };
+    updateElapsed();
+    const interval = setInterval(updateElapsed, 1000);
+    return () => clearInterval(interval);
+  }, [biteTime]);
+
+  const formatElapsed = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return `${hrs.toString().padStart(2, "0")}h : ${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
+  };
+
+  // Determine current timeline phase index
+  const currentPhaseIndex = useMemo(() => {
+    const mins = Math.floor(elapsedSeconds / 60);
+    if (mins < 15) return 0;
+    if (mins < 60) return 1;
+    return 2;
+  }, [elapsedSeconds]);
+
+
+
+  const bodyParts = [
+    { id: "Head & Neck", label: "Head & Neck" },
+    { id: "Torso", label: "Torso" },
+    { id: "Right Arm", label: "Right Arm" },
+    { id: "Left Arm", label: "Left Arm" },
+    { id: "Right Leg", label: "Right Leg" },
+    { id: "Left Leg", label: "Left Leg" },
+    { id: "Right Foot", label: "Right Foot" },
+    { id: "Left Foot", label: "Left Foot" },
+  ];
+
+
 
   useEffect(() => {
     let isMounted = true;
@@ -222,6 +356,106 @@ export default function OfflineAnimalAI() {
 
   }, [imagePredictions, selectedSymptoms]);
 
+  // Medical advisory timeline content based on danger level
+  const timelinePhases = useMemo(() => {
+    const danger = result?.dangerLevel || "unknown";
+    
+    if (danger === "extreme" || danger === "high") {
+      return [
+        {
+          title: "Phase 1: Localized Phase (0-15m)",
+          symptoms: "Intense local pain, minor swelling, fang marks oozing.",
+          action: "Immobilize the limb below heart level. Remain completely still to slow venom spread. Remove rings/watches.",
+        },
+        {
+          title: "Phase 2: Lymphatic Spread (15-60m)",
+          symptoms: "Swelling spreads up the limb, numbness/tingling, rapid pulse, nausea.",
+          action: "Do NOT move. Splint the limb if possible. Keep airway clear. Responders are en route.",
+        },
+        {
+          title: "Phase 3: Systemic Absorption (60m+)",
+          symptoms: "Dizziness, sweating, muscle twitching, breathing difficulty.",
+          action: "Lie in recovery position (left side) if feeling faint or weak. Ensure your mouth is clear.",
+        },
+      ];
+    } else if (danger === "low") {
+      return [
+        {
+          title: "Phase 1: Localized Phase (0-15m)",
+          symptoms: "Mild localized pain, small puncture/scratch marks.",
+          action: "Wash the bite wound thoroughly with soap and clean water to prevent local infection.",
+        },
+        {
+          title: "Phase 2: Observation Phase (15-60m)",
+          symptoms: "Pain subsides, no spreading swelling, no systemic issues.",
+          action: "Keep the area clean. Monitor for any signs of allergic reactions (hives, wheezing).",
+        },
+        {
+          title: "Phase 3: Recovery Phase (60m+)",
+          symptoms: "Wound irritation only.",
+          action: "Standard wound care. Reassure the victim. Tetanus shot booster recommended if not up-to-date.",
+        },
+      ];
+    } else {
+      return [
+        {
+          title: "Phase 1: Shock & Local Pain (0-15m)",
+          symptoms: "Pain or stinging, shock, fear.",
+          action: "Wash the bite area. Immobilize the limb below heart level. DO NOT walk or run.",
+        },
+        {
+          title: "Phase 2: Symptom Assessment (15-60m)",
+          symptoms: "Observe if swelling spreads, or if numbness, nausea, or sweating starts.",
+          action: "Keep still. Responders will check for clinical signs of envenomation upon arrival.",
+        },
+        {
+          title: "Phase 3: Critical Window (60m+)",
+          symptoms: "Potential systemic effects if creature was venomous.",
+          action: "Lie in the recovery position if feeling dizzy or faint. Prepare details for medical personnel.",
+        },
+      ];
+    }
+  }, [result]);
+
+  // Report details back to SOSClient
+  useEffect(() => {
+    if (!onChange) return;
+
+    const parts: string[] = [];
+    if (result) {
+      parts.push(`Creature: ${result.species} (${result.confidence}%)`);
+    } else {
+      parts.push("Creature: Unknown/Unclassified");
+    }
+
+    if (selectedBodyPart) {
+      parts.push(`Location: ${selectedBodyPart}`);
+    } else {
+      parts.push("Location: Not specified");
+    }
+
+    const elapsedMins = Math.floor(elapsedSeconds / 60);
+    parts.push(`Time: ${biteTimePreset === "just_now" ? "Just now" : `${elapsedMins}m ago`} (Elapsed: ${formatElapsed(elapsedSeconds)})`);
+
+    const symptomsText = selectedSymptoms
+      .map(id => SYMPTOMS_LIST.find(s => s.id === id)?.label)
+      .filter(Boolean)
+      .join(", ");
+    if (symptomsText) {
+      parts.push(`Symptoms: ${symptomsText}`);
+    }
+
+    const badActions = [];
+    if (firstAidActions.tourniquet) badActions.push("Tourniquet");
+    if (firstAidActions.ice) badActions.push("Ice applied");
+    if (firstAidActions.cutWound) badActions.push("Wound cut");
+    if (badActions.length > 0) {
+      parts.push(`Contraindicated actions taken: ${badActions.join(", ")}`);
+    }
+
+    onChange(parts.join(" | "));
+  }, [result, selectedBodyPart, elapsedSeconds, selectedSymptoms, firstAidActions, biteTimePreset, onChange]);
+
   const runInference = useCallback(async (canvas: HTMLCanvasElement) => {
     if (!modelRef.current) return;
     try {
@@ -289,137 +523,362 @@ export default function OfflineAnimalAI() {
   }, []);
 
   return (
-    <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-slate-200">
-          <span className="text-2xl">🧬</span>
-          Multimodal AI Identifier
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Identify species using a photo, symptoms, or both for highest accuracy.
-        </p>
-      </CardHeader>
+    <div className="space-y-6">
+      {/* ─── Bite Diagnostics & Time Tracker ────────────────── */}
+      <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-200">
+            <Activity className="text-rose-500 h-5 w-5 animate-pulse" />
+            Bite Diagnostics & Time Tracker
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Log the bite location and track elapsed time to guide responders and first aid.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Layout for Body Map & Parts Selection */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Select Bite Location
+            </h4>
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="w-full sm:w-1/3 flex justify-center">
+                <BodyMap selected={selectedBodyPart} onSelect={setSelectedBodyPart} />
+              </div>
+              <div className="w-full sm:w-2/3 grid grid-cols-2 gap-2 content-center">
+                {bodyParts.map(part => {
+                  const isSelected = selectedBodyPart === part.id;
+                  return (
+                    <button
+                      key={part.id}
+                      type="button"
+                      onClick={() => setSelectedBodyPart(part.id)}
+                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-semibold border transition-all duration-300 ${
+                        isSelected
+                          ? "bg-rose-950/40 border-rose-500 text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)]"
+                          : "bg-slate-950/30 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+                      }`}
+                    >
+                      <span>{part.label}</span>
+                      {isSelected && <Check className="h-3 w-3 text-rose-400" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-      <CardContent className="space-y-4">
-        {/* ── Camera Capture Button ─────────────────────────────── */}
-        {!imagePreview && (
-          <label
-            htmlFor="animal-capture"
-            className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-950/20 p-6 transition-all hover:border-amber-400 hover:bg-amber-950/40 active:scale-[0.98]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="size-12 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
-            </svg>
-            <span className="text-base font-semibold text-amber-300">
-              {modelLoading ? "⏳ Loading Image Engine..." : "📷 Add Photo"}
-            </span>
-            <input
-              ref={fileInputRef}
-              id="animal-capture"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handleImageCapture}
-              disabled={modelLoading}
-            />
-          </label>
-        )}
+          {/* First Aid Actions Checker */}
+          <div className="rounded-xl border border-slate-800 bg-slate-950/20 p-4 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <ShieldAlert className="h-4 w-4 text-amber-500" />
+              First Aid Verification
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Please verify if any of these actions have been taken (for clinical tracking):
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={firstAidActions.tourniquet}
+                  onChange={(e) => setFirstAidActions(prev => ({ ...prev, tourniquet: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
+                />
+                <span className="text-xs text-slate-300">Tourniquet Applied</span>
+              </label>
 
-        <canvas ref={canvasRef} style={{ display: "none" }} className="hidden" />
+              <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={firstAidActions.ice}
+                  onChange={(e) => setFirstAidActions(prev => ({ ...prev, ice: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
+                />
+                <span className="text-xs text-slate-300">Ice Applied</span>
+              </label>
 
-        {/* ── Image Preview ────────────────────────────────────── */}
-        {imagePreview && (
-          <div className="relative overflow-hidden rounded-xl border border-amber-500/30">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={imagePreview} alt="Captured specimen" className="h-48 w-full object-cover" />
-            {isAnalyzing && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-                <div className="size-16 animate-ping rounded-full border-4 border-amber-400/50" />
-                <p className="mt-4 text-sm font-semibold text-amber-300 animate-pulse">Analyzing Image…</p>
+              <label className="flex items-center gap-2.5 rounded-lg border border-slate-800 bg-slate-900/30 p-2.5 hover:bg-slate-800/40 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={firstAidActions.cutWound}
+                  onChange={(e) => setFirstAidActions(prev => ({ ...prev, cutWound: e.target.checked }))}
+                  className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-900"
+                />
+                <span className="text-xs text-slate-300">Wound Cut / Sucked</span>
+              </label>
+            </div>
+
+            {/* Warn Banner if Contraindications are selected */}
+            {(firstAidActions.tourniquet || firstAidActions.ice || firstAidActions.cutWound) && (
+              <div className="rounded-lg bg-red-950/45 border border-red-500/30 p-3 text-red-200/90 text-xs leading-relaxed space-y-1.5 animate-in fade-in duration-300">
+                <p className="font-bold flex items-center gap-1 text-red-400">
+                  <AlertTriangle className="h-4 w-4 text-red-500 animate-bounce" />
+                  CRITICAL FIRST AID WARNING:
+                </p>
+                {firstAidActions.tourniquet && (
+                  <p>• <strong>Do NOT use tourniquets.</strong> Restricting blood flow traps venom in the limb, dramatically increasing tissue necrosis and risk of amputation without halting systemic spread.</p>
+                )}
+                {firstAidActions.ice && (
+                  <p>• <strong>Do NOT apply ice.</strong> Extreme cold constricts blood vessels and accelerates localized tissue damage.</p>
+                )}
+                {firstAidActions.cutWound && (
+                  <p>• <strong>Do NOT cut the wound or try to suck venom.</strong> This is ineffective and introduces severe infection risk while increasing bleeding.</p>
+                )}
+                <p className="mt-1 font-semibold text-red-300">Please release any tourniquets and stop icing or cutting immediately.</p>
               </div>
             )}
           </div>
-        )}
 
-        {/* ── Symptom Checklist ────────────────────────────────── */}
-        <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
-          <button 
-            onClick={() => setShowSymptoms(!showSymptoms)}
-            className="flex w-full items-center justify-between font-semibold text-slate-300"
-          >
-            <span>🩺 {selectedSymptoms.length > 0 ? `${selectedSymptoms.length} Symptoms Added` : "Add Clinical Symptoms"}</span>
-            <span className="text-amber-500">{showSymptoms ? "▲" : "▼"}</span>
-          </button>
-          
-          {showSymptoms && (
-            <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
-              <p className="text-xs text-muted-foreground mb-3">Select any observed symptoms to refine the AI accuracy (Functions completely offline).</p>
-              {SYMPTOMS_LIST.map(sym => (
-                <label key={sym.id} className="flex items-start gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3 hover:bg-slate-800 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={selectedSymptoms.includes(sym.id)}
-                    onChange={() => handleSymptomToggle(sym.id)}
-                    className="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-900"
-                  />
-                  <span className="text-sm text-slate-200">{sym.label}</span>
-                </label>
+          {/* Bite Time Tracker UI */}
+          <div className="space-y-4 rounded-xl border border-slate-850 bg-slate-950/20 p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-450 flex items-center gap-1.5">
+                  <Clock className="h-4 w-4 text-indigo-400" />
+                  Bite Time Tracker
+                </h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Specify when the incident occurred to calculate envenomation windows.
+                </p>
+              </div>
+              
+              {/* Dynamic Stopwatch Counter */}
+              <div className="flex items-center gap-2 bg-indigo-950/40 border border-indigo-500/30 rounded-lg px-3 py-1.5 self-start sm:self-auto">
+                <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                <span className="text-xs font-bold tracking-wider text-indigo-300 font-mono">
+                  {formatElapsed(elapsedSeconds)} elapsed
+                </span>
+              </div>
+            </div>
+
+            {/* Presets */}
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: "just_now", label: "Just Now" },
+                { id: "5m", label: "5m ago" },
+                { id: "15m", label: "15m ago" },
+                { id: "30m", label: "30m ago" },
+                { id: "1h", label: "1h ago" },
+                { id: "2h", label: "2h+ ago" },
+                { id: "custom", label: "Custom Time" },
+              ].map(preset => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => setBiteTimePreset(preset.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all duration-300 ${
+                    biteTimePreset === preset.id
+                      ? "bg-indigo-950/40 border-indigo-500 text-indigo-300"
+                      : "bg-slate-900/30 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-350"
+                  }`}
+                >
+                  {preset.label}
+                </button>
               ))}
             </div>
-          )}
-        </div>
 
-        {/* ── Classification Results ───────────────────────────── */}
-        {result && (
-          <div className="space-y-3 rounded-xl border border-amber-500/20 bg-slate-800/80 p-4 animate-in fade-in duration-500">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Identified Match
-                </p>
-                <p className="text-lg font-bold text-white">
-                  {result.species}
-                </p>
+            {/* Custom Time Picker */}
+            {biteTimePreset === "custom" && (
+              <div className="flex items-center gap-3 animate-in fade-in duration-300 mt-2">
+                <span className="text-xs text-slate-400">Specify Incident Time:</span>
+                <input
+                  type="time"
+                  value={customTime}
+                  onChange={(e) => setCustomTime(e.target.value)}
+                  className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 font-mono"
+                />
               </div>
-              <Badge className={result.dangerColor}>
-                {result.dangerLevel === "extreme" ? "☠️ EXTREME" : result.dangerLevel === "high" ? "⚠️ HIGH" : "✅ LOW"}
-              </Badge>
-            </div>
-
-            <div>
-              <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                <span>Confidence ({imagePredictions && selectedSymptoms.length > 0 ? "Image + Symptoms" : imagePredictions ? "Image Only" : "Symptoms Only"})</span>
-                <span className="font-mono font-bold text-amber-400">{result.confidence}%</span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-700">
-                <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-1000" style={{ width: `${result.confidence}%` }} />
-              </div>
-            </div>
-
-            <div className="rounded-lg bg-slate-900/60 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">Recommended Action</p>
-              <p className="mt-1 text-sm text-slate-200">{result.action}</p>
-            </div>
-
-            {/* Scan again button */}
-            <button
-              onClick={handleReset}
-              className="mt-2 w-full rounded-lg border border-amber-500/30 py-2.5 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/10 active:scale-[0.98]"
-            >
-              🔄 Reset & Scan Another
-            </button>
+            )}
           </div>
-        )}
-      </CardContent>
 
-      <CardFooter className="justify-center flex-col gap-1">
-        <p className="text-center text-xs text-muted-foreground">⚡ Multimodal AI Engine — Fully Offline</p>
-        <p className="text-center text-[10px] text-amber-500/70 font-mono">
-          {modelLoading ? "Loading model weights (1.9MB)..." : modelError ? `Engine error: ${modelError}` : "AI Engine: Ready (Loaded Offline)"}
-        </p>
-      </CardFooter>
-    </Card>
+          {/* Clinical Advisory Timeline */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Clinical Advisory Timeline ({result ? `Tailored for ${result.species}` : "General Advisory"})
+            </h4>
+            <div className="relative border-l border-slate-800 ml-3 pl-6 space-y-6">
+              {timelinePhases.map((phase, idx) => {
+                const isActive = idx === currentPhaseIndex;
+                const isPast = idx < currentPhaseIndex;
+                
+                return (
+                  <div key={idx} className="relative">
+                    {/* Circle Indicator */}
+                    <span className={`absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full border ${
+                      isActive 
+                        ? "bg-rose-500 border-rose-450 animate-ping" 
+                        : isPast 
+                          ? "bg-slate-700 border-slate-650" 
+                          : "bg-slate-900 border-slate-850"
+                    }`} />
+                    <span className={`absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full border ${
+                      isActive 
+                        ? "bg-rose-600 border-rose-400" 
+                        : isPast 
+                          ? "bg-slate-700 border-slate-600" 
+                          : "bg-slate-900 border-slate-800"
+                    }`} />
+                    
+                    {/* Content */}
+                    <div className={`rounded-lg p-3 transition-all duration-300 ${
+                      isActive 
+                        ? "bg-rose-950/20 border border-rose-500/30" 
+                        : "bg-slate-950/20 border border-slate-900/50"
+                    }`}>
+                      <p className={`text-sm font-semibold ${isActive ? "text-rose-400" : isPast ? "text-slate-500" : "text-slate-400"}`}>
+                        {phase.title}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        <span className="font-semibold text-slate-350">Symptoms:</span> {phase.symptoms}
+                      </p>
+                      <p className="text-xs text-rose-200/80 mt-1.5 leading-relaxed">
+                        <span className="font-semibold text-rose-300">Action:</span> {phase.action}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ─── Multimodal AI Identifier ───────────────────────── */}
+      <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-slate-200">
+            <span className="text-2xl">🧬</span>
+            Multimodal AI Identifier
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Identify species using a photo, symptoms, or both for highest accuracy.
+          </p>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* ── Camera Capture Button ─────────────────────────────── */}
+          {!imagePreview && (
+            <label
+              htmlFor="animal-capture"
+              className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-amber-500/40 bg-amber-950/20 p-6 transition-all hover:border-amber-400 hover:bg-amber-950/40 active:scale-[0.98]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="size-12 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+              </svg>
+              <span className="text-base font-semibold text-amber-300">
+                {modelLoading ? "⏳ Loading Image Engine..." : "📷 Add Photo"}
+              </span>
+              <input
+                ref={fileInputRef}
+                id="animal-capture"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleImageCapture}
+                disabled={modelLoading}
+              />
+            </label>
+          )}
+
+          <canvas ref={canvasRef} style={{ display: "none" }} className="hidden" />
+
+          {/* ── Image Preview ────────────────────────────────────── */}
+          {imagePreview && (
+            <div className="relative overflow-hidden rounded-xl border border-amber-500/30">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreview} alt="Captured specimen" className="h-48 w-full object-cover" />
+              {isAnalyzing && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
+                  <div className="size-16 animate-ping rounded-full border-4 border-amber-400/50" />
+                  <p className="mt-4 text-sm font-semibold text-amber-300 animate-pulse">Analyzing Image…</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Symptom Checklist ────────────────────────────────── */}
+          <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+            <button 
+              type="button"
+              onClick={() => setShowSymptoms(!showSymptoms)}
+              className="flex w-full items-center justify-between font-semibold text-slate-300"
+            >
+              <span>🩺 {selectedSymptoms.length > 0 ? `${selectedSymptoms.length} Symptoms Added` : "Add Clinical Symptoms"}</span>
+              <span className="text-amber-500">{showSymptoms ? "▲" : "▼"}</span>
+            </button>
+            
+            {showSymptoms && (
+              <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
+                <p className="text-xs text-muted-foreground mb-3">Select any observed symptoms to refine the AI accuracy (Functions completely offline).</p>
+                {SYMPTOMS_LIST.map(sym => (
+                  <label key={sym.id} className="flex items-start gap-3 rounded-lg border border-slate-700 bg-slate-900/50 p-3 hover:bg-slate-800 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      checked={selectedSymptoms.includes(sym.id)}
+                      onChange={() => handleSymptomToggle(sym.id)}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-slate-900"
+                    />
+                    <span className="text-sm text-slate-200">{sym.label}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ── Classification Results ───────────────────────────── */}
+          {result && (
+            <div className="space-y-3 rounded-xl border border-amber-500/20 bg-slate-800/80 p-4 animate-in fade-in duration-500">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    Identified Match
+                  </p>
+                  <p className="text-lg font-bold text-white">
+                    {result.species}
+                  </p>
+                </div>
+                <Badge className={result.dangerColor}>
+                  {result.dangerLevel === "extreme" ? "☠️ EXTREME" : result.dangerLevel === "high" ? "⚠️ HIGH" : "✅ LOW"}
+                </Badge>
+              </div>
+
+              <div>
+                <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                  <span>Confidence ({imagePredictions && selectedSymptoms.length > 0 ? "Image + Symptoms" : imagePredictions ? "Image Only" : "Symptoms Only"})</span>
+                  <span className="font-mono font-bold text-amber-400">{result.confidence}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-700">
+                  <div className="h-full rounded-full bg-gradient-to-r from-amber-500 to-amber-300 transition-all duration-1000" style={{ width: `${result.confidence}%` }} />
+                </div>
+              </div>
+
+              <div className="rounded-lg bg-slate-900/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-400">Recommended Action</p>
+                <p className="mt-1 text-sm text-slate-200">{result.action}</p>
+              </div>
+
+              {/* Scan again button */}
+              <button
+                type="button"
+                onClick={handleReset}
+                className="mt-2 w-full rounded-lg border border-amber-500/30 py-2.5 text-sm font-medium text-amber-300 transition-colors hover:bg-amber-500/10 active:scale-[0.98]"
+              >
+                🔄 Reset & Scan Another
+              </button>
+            </div>
+          )}
+        </CardContent>
+
+        <CardFooter className="justify-center flex-col gap-1">
+          <p className="text-center text-xs text-muted-foreground">⚡ Multimodal AI Engine — Fully Offline</p>
+          <p className="text-center text-[10px] text-amber-500/70 font-mono">
+            {modelLoading ? "Loading model weights (1.9MB)..." : modelError ? `Engine error: ${modelError}` : "AI Engine: Ready (Loaded Offline)"}
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

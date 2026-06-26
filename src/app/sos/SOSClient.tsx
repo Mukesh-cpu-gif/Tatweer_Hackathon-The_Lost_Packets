@@ -51,6 +51,7 @@ export default function SOSClient() {
   const [livestockInfo, setLivestockInfo] = useState<string>("");
   const [fuelRequestInfo, setFuelRequestInfo] = useState<string>("");
   const [stuckVehicleInfo, setStuckVehicleInfo] = useState<string>("");
+  const [venomousThreatInfo, setVenomousThreatInfo] = useState<string>("");
   const [responders, setResponders] = useState<Responder[]>([]);
 
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function SOSClient() {
     try {
       let extraInfo = "";
       if (sosType.id === "venomous_bite") {
-        extraInfo = "Possible venomous creature";
+        extraInfo = venomousThreatInfo || "Possible venomous creature";
       } else if (sosType.id === "sick_livestock") {
         extraInfo = livestockInfo || "Sick livestock reported";
       } else if (sosType.id === "out_of_fuel") {
@@ -140,7 +141,7 @@ export default function SOSClient() {
     const phone = "+971501234567";
     let extraInfo = "";
     if (sosType.id === "venomous_bite") {
-      extraInfo = "Possible venomous creature";
+      extraInfo = venomousThreatInfo || "Possible venomous creature";
     } else if (sosType.id === "sick_livestock") {
       extraInfo = livestockInfo || "Sick livestock reported";
     } else if (sosType.id === "out_of_fuel") {
@@ -240,7 +241,7 @@ export default function SOSClient() {
         </Card>
 
         {typeId === "venomous_bite" && (
-          <OfflineAnimalAI />
+          <OfflineAnimalAI onChange={setVenomousThreatInfo} />
         )}
 
         {typeId === "sick_livestock" && (

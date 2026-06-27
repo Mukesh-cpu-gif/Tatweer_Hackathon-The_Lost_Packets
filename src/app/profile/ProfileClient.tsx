@@ -286,7 +286,7 @@ export default function ProfileClient() {
           percentage={profileCompletion}
           missingItems={profileMissingItems}
           completeLabel={t("Ready")}
-          incompleteLabel={t("Profile incomplete")}
+          incompleteLabel={t("Incomplete")}
         />
 
         <form onSubmit={handleSave} className="space-y-6">

@@ -382,6 +382,7 @@ export const translations: Record<string, { en: string; ar: string }> = {
   "Available to help": { en: "Available to help", ar: "متاح للمساعدة" },
   "Available": { en: "Available", ar: "متاح" },
   "Profile incomplete": { en: "Profile incomplete", ar: "الملف الشخصي غير مكتمل" },
+  "Incomplete": { en: "Incomplete", ar: "غير مكتمل" },
   "Profile offline": { en: "Profile offline", ar: "الملف الشخصي غير متاح" },
   "Medical Details": { en: "Medical Details", ar: "التفاصيل الطبية" },
   "Allergies, medications, conditions, emergency notes...": { en: "Allergies, medications, conditions, emergency notes...", ar: "الحساسيات، الأدوية، الحالات الصحية، ملاحظات الطوارئ..." },

@@ -277,33 +277,6 @@ export default function HomePage() {
           </Link>
         )}
 
-        <GlassPanel tone="system" className="p-4">
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                {t("Profile")}
-              </p>
-              <StatusPill tone={profileStatusTone} pulse={!profileComplete}>
-                {profileCompletion}%
-              </StatusPill>
-            </div>
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                {t("Status")}
-              </p>
-              <StatusPill tone={profileStatusTone}>{profileStatusLabel}</StatusPill>
-            </div>
-            <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                {t("GPS Location")}
-              </p>
-              <StatusPill tone={profile?.location ? "gps" : "warning"} pulse={!profile?.location}>
-                {profile?.location ? t("Ready") : t("Not set")}
-              </StatusPill>
-            </div>
-          </div>
-        </GlassPanel>
-
         <RiskRadar />
 
         <section>

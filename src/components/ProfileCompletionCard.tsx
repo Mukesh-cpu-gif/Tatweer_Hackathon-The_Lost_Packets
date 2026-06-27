@@ -24,21 +24,21 @@ function ProfileCompletionCard({
 
   return (
     <GlassPanel tone={complete ? "success" : "warning"} className="p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-2xl border border-white/10 bg-zinc-950/55 p-3">
+      <div className="flex items-start justify-between gap-3 min-w-0">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <div className="rounded-2xl border border-white/10 bg-zinc-950/55 p-3 shrink-0">
             {complete ? (
               <CheckCircle2 size={20} className="text-emerald-400" />
             ) : (
               <ShieldAlert size={20} className="text-amber-400" />
             )}
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-100">{title}</h2>
             <p className="mt-1 text-xs leading-relaxed text-zinc-400">{subtitle}</p>
           </div>
         </div>
-        <StatusPill tone={complete ? "success" : "warning"} pulse={!complete}>
+        <StatusPill tone={complete ? "success" : "warning"} className="shrink-0" pulse={!complete}>
           {complete ? completeLabel : incompleteLabel}
         </StatusPill>
       </div>

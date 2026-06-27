@@ -52,6 +52,7 @@ export interface Incident {
   requiredSkills: string[];
   timestamp: string;
   requesterName: string;
+  isVoiceCommand?: boolean;
   aiClassification?: string;
   clientSessionId?: string;
   createdByUid?: string;

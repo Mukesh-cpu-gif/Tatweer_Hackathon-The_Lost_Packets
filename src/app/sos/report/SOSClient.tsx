@@ -386,6 +386,7 @@ export default function SOSClient() {
         clientSessionId,
         createdByUid: user?.uid ?? null,
         notifiedCount: respondersWithDistance.length,
+        isVoiceCommand: voiceAutofilled,
       });
 
       setActiveIncidentId(incidentId);

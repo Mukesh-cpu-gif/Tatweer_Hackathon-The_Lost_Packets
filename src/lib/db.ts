@@ -78,6 +78,7 @@ export interface IncidentSummaryInput {
   clientSessionId?: string;
   createdByUid?: string | null;
   notifiedCount?: number;
+  isVoiceCommand?: boolean;
 }
 
 export type ResponderProfile = CommunityProfile;
@@ -430,6 +431,7 @@ export const createIncidentSummary = async (input: IncidentSummaryInput) => {
     },
     acceptedBy: [],
     acceptedByNames: [],
+    isVoiceCommand: Boolean(input.isVoiceCommand),
     timestamp: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -447,6 +449,7 @@ export const createIncidentSummary = async (input: IncidentSummaryInput) => {
       requiredSkills,
       timestamp: new Date().toISOString(),
       requesterName: newIncident.requesterName,
+      isVoiceCommand: newIncident.isVoiceCommand,
       clientSessionId,
       createdByUid: input.createdByUid ?? undefined,
       responderCounts: newIncident.responderCounts,

@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel, LogOut, Phone, Pencil, Save, MapPin, AlertCircle, X } from "lucide-react";
+import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel, LogOut, Phone, Pencil, Save, MapPin, AlertCircle, X, Mic } from "lucide-react";
 
 /**
  * Responder Dashboard — Deep Space Aesthetic
@@ -663,6 +663,18 @@ export default function ResponderDashboard() {
                           <div>
                             <p className="text-[10px] text-rose-500/80 font-bold tracking-widest uppercase mb-0.5">AI Threat Analysis</p>
                             <p className="text-sm text-rose-200/90 font-medium tracking-wide">{inc.aiClassification}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {inc.isVoiceCommand && (
+                        <div className="mt-2 bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 flex gap-3">
+                          <Mic size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+                          <div>
+                            <p className="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mb-0.5">Created via Voice Command</p>
+                            <p className="text-xs text-indigo-200/80 leading-relaxed font-medium tracking-wide">
+                              ⚠️ Details generated via Voice AI. May contain transcription errors; please verify details with requester.
+                            </p>
                           </div>
                         </div>
                       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
@@ -11,17 +11,23 @@ import type { Coordinates } from "@/lib/geo";
 import {
   subscribeToIncidents,
   acceptIncident,
+  getClientSessionId,
   saveResponderProfile,
   subscribeToResponderProfile,
   updateResponderAvailability,
 } from "@/lib/db";
 import type { ResponderProfile } from "@/lib/db";
+import { GlassPanel } from "@/components/GlassPanel";
+import { StatusPill } from "@/components/StatusPill";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel, LogOut, Phone, Pencil, Save, MapPin, AlertCircle, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { ChevronLeft, Map, CheckCircle2, Navigation, User, Car, BrainCircuit, Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, Fuel, LogOut, Phone, Pencil, Save, MapPin, AlertCircle, X, Mic } from "lucide-react";
 
 /**
  * Responder Dashboard — Deep Space Aesthetic
@@ -63,6 +69,7 @@ const createEmptyProfileForm = (): ProfileFormState => ({
 
 export default function ResponderDashboard() {
   const router = useRouter();
+  const clientSessionId = useMemo(() => getClientSessionId(), []);
   const [acceptedIncidents, setAcceptedIncidents] = useState<Set<string>>(new Set());
   const [liveIncidents, setLiveIncidents] = useState<Incident[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -146,14 +153,23 @@ export default function ResponderDashboard() {
     }
   };
 
-  const handleAccept = async (id: string) => {
+  const isOwnIncident = (incident: Incident) =>
+    Boolean(incident.createdByUid && user?.uid && incident.createdByUid === user.uid) ||
+    Boolean(incident.clientSessionId && incident.clientSessionId === clientSessionId);
+
+  const handleAccept = async (incident: Incident) => {
+    if (isOwnIncident(incident)) return;
+
     try {
-      await acceptIncident(id);
-      setAcceptedIncidents((prev) => new Set(prev).add(id));
+      await acceptIncident(incident.id, {
+        uid: user?.uid,
+        name: profile?.name ?? user?.displayName ?? "Community Helper",
+      });
+      setAcceptedIncidents((prev) => new Set(prev).add(incident.id));
     } catch (error) {
       console.error("Failed to accept incident", error);
       // Fallback to local state if firestore fails
-      setAcceptedIncidents((prev) => new Set(prev).add(id));
+      setAcceptedIncidents((prev) => new Set(prev).add(incident.id));
     }
   };
 
@@ -269,28 +285,34 @@ export default function ResponderDashboard() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
-        <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Authenticating Dispatch...</p>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-5">
+        <GlassPanel tone="system" className="w-full max-w-sm p-5">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-44" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <p className="text-center tracking-widest uppercase font-bold text-sm text-zinc-400">Authenticating Dispatch...</p>
+          </div>
+        </GlassPanel>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-4" />
-        <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Redirecting to login...</p>
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-5">
+        <GlassPanel tone="system" className="w-full max-w-sm p-5 text-center">
+          <Skeleton className="mx-auto mb-4 h-10 w-10 rounded-full" />
+          <p className="tracking-widest uppercase font-bold text-sm text-zinc-400">Redirecting to login...</p>
+        </GlassPanel>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
-      
-      {/* ─── Cosmic Nebulas ───────────────────────────────────── */}
-      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-sky-600/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[20%] left-[-10%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative min-h-screen bg-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.38),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
 
       {/* ─── Header ──────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 bg-zinc-950/40 backdrop-blur-xl border-b border-zinc-800/50">
@@ -310,10 +332,7 @@ export default function ResponderDashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-indigo-950/30 border border-indigo-500/20 rounded-full px-3 py-1.5 backdrop-blur-md">
-            <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)] animate-pulse" />
-            <span className="text-[10px] text-indigo-300 font-bold tracking-widest uppercase">Live</span>
-          </div>
+          <StatusPill tone="system" pulse>Live</StatusPill>
         </div>
       </header>
 
@@ -362,10 +381,12 @@ export default function ResponderDashboard() {
                 </div>
 
                 {profileError && (
-                  <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 flex items-start gap-2">
+                  <Alert variant="danger">
+                  <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-rose-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-rose-300/90">{profileError}</p>
+                    <AlertDescription>{profileError}</AlertDescription>
                   </div>
+                  </Alert>
                 )}
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -454,20 +475,17 @@ export default function ResponderDashboard() {
                 <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/30 px-3 py-2.5">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Availability</p>
-                    <p className="text-xs text-indigo-200/50 mt-0.5">{isAvailable ? "Available" : "Offline"}</p>
+                    <div className="mt-1">
+                      <StatusPill tone={isAvailable ? "success" : "offline"}>
+                        {isAvailable ? "Available" : "Offline"}
+                      </StatusPill>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleAvailabilityToggle}
-                    className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                      isAvailable ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]" : "bg-zinc-700/50"
-                    }`}
-                    title="Toggle Availability"
-                  >
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${
-                      isAvailable ? "translate-x-8" : "translate-x-1"
-                    }`} />
-                  </button>
+                  <Switch
+                    checked={isAvailable}
+                    onCheckedChange={handleAvailabilityToggle}
+                    aria-label="Toggle Availability"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -522,18 +540,11 @@ export default function ResponderDashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleAvailabilityToggle}
-                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 focus:outline-none ${
-                        isAvailable ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]" : "bg-zinc-700/50"
-                      }`}
-                      title="Toggle Availability"
-                    >
-                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${
-                        isAvailable ? "translate-x-8" : "translate-x-1"
-                      }`} />
-                    </button>
+                    <Switch
+                      checked={isAvailable}
+                      onCheckedChange={handleAvailabilityToggle}
+                      aria-label="Toggle Availability"
+                    />
                     <Button
                       onClick={() => {
                         setProfileNotice(null);
@@ -560,16 +571,18 @@ export default function ResponderDashboard() {
                 </div>
 
                 {profileNotice && (
-                  <div className="mb-4 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs text-emerald-300">
-                    {profileNotice}
-                  </div>
+                  <Alert variant="success" className="mb-4">
+                    <AlertDescription>{profileNotice}</AlertDescription>
+                  </Alert>
                 )}
 
                 {profileError && (
-                  <div className="mb-4 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 flex items-start gap-2">
+                  <Alert variant="danger" className="mb-4">
+                  <div className="flex items-start gap-2">
                     <AlertCircle size={16} className="text-rose-400 mt-0.5 shrink-0" />
-                    <p className="text-xs text-rose-300/90">{profileError}</p>
+                    <AlertDescription>{profileError}</AlertDescription>
                   </div>
+                  </Alert>
                 )}
 
                 <div className="flex flex-wrap gap-2">
@@ -594,20 +607,22 @@ export default function ResponderDashboard() {
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
               <h2 className="text-sm font-bold tracking-widest uppercase text-zinc-300">Active Incidents</h2>
             </div>
-            <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-medium bg-zinc-900/50 px-2 py-1 rounded-full border border-zinc-800">
+            <StatusPill tone={isAvailable ? "gps" : "offline"} pulse={isAvailable}>
               {isAvailable ? "Searching Area" : "Offline"}
-            </span>
+            </StatusPill>
           </div>
 
           <div className="space-y-4">
             {!isAvailable ? (
-              <div className="text-center py-10 bg-zinc-900/20 border border-zinc-800/30 rounded-2xl border-dashed">
-                <p className="text-zinc-500 text-sm font-medium tracking-wide">You are currently offline.</p>
-                <p className="text-zinc-600 text-xs mt-1">Toggle availability to receive dispatch requests.</p>
-              </div>
+              <Alert className="border-dashed border-zinc-800/80 bg-zinc-950/30 py-8 text-center">
+                <AlertDescription>
+                  You are currently offline. Toggle availability to receive dispatch requests.
+                </AlertDescription>
+              </Alert>
             ) : (
               liveIncidents.map((inc) => {
                 const sosType = sosTypes.find((s) => s.id === inc.type);
+                const isOwn = isOwnIncident(inc);
                 const isAccepted = acceptedIncidents.has(inc.id) || inc.status === "accepted";
                 const Icon = sosType?.lucideIconName && iconMap[sosType.lucideIconName] ? iconMap[sosType.lucideIconName] : Activity;
 
@@ -666,6 +681,18 @@ export default function ResponderDashboard() {
                           </div>
                         </div>
                       )}
+
+                      {inc.isVoiceCommand && (
+                        <div className="mt-2 bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 flex gap-3">
+                          <Mic size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+                          <div>
+                            <p className="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mb-0.5">Created via Voice Command</p>
+                            <p className="text-xs text-indigo-200/80 leading-relaxed font-medium tracking-wide">
+                              ⚠️ Details generated via Voice AI. May contain transcription errors; please verify details with requester.
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
 
                     <Separator className="bg-zinc-800/50" />
@@ -681,15 +708,19 @@ export default function ResponderDashboard() {
                       </Link>
                       
                       <Button 
-                        onClick={() => handleAccept(inc.id)}
-                        disabled={isAccepted}
+                        onClick={() => handleAccept(inc)}
+                        disabled={isAccepted || isOwn}
                         className={`w-full font-bold tracking-widest text-[10px] uppercase h-11 transition-all duration-500 ${
-                          isAccepted 
+                          isOwn
+                            ? "bg-zinc-900/60 text-zinc-500 border border-zinc-700/50 hover:bg-zinc-900/60"
+                            : isAccepted
                             ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-950/40 opacity-80"
                             : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)] hover:shadow-[0_0_25px_rgba(99,102,241,0.5)]"
                         }`}
                       >
-                        {isAccepted ? (
+                        {isOwn ? (
+                          <>Own Request</>
+                        ) : isAccepted ? (
                           <><CheckCircle2 size={16} className="mr-2" strokeWidth={2} /> Accepted</>
                         ) : (
                           <><Navigation size={16} className="mr-2" strokeWidth={2} /> Accept SOS</>

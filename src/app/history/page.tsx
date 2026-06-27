@@ -6,8 +6,11 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
 import { Activity, ArrowRight, BadgeCheck, Bug, Droplet, Fuel, HeartPulse, History, Stethoscope, Tractor } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
-import { Badge } from "@/components/ui/badge";
+import { GlassPanel } from "@/components/GlassPanel";
+import { StatusPill } from "@/components/StatusPill";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { getClientSessionId, subscribeToIncidents } from "@/lib/db";
@@ -30,6 +33,7 @@ export default function HistoryPage() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(isFirebaseConfigured);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(true);
   const [now] = useState(() => Date.now());
   const clientSessionId = useMemo(() => getClientSessionId(), []);
 
@@ -54,7 +58,14 @@ export default function HistoryPage() {
     return () => unsubscribe();
   }, [router]);
 
-  useEffect(() => subscribeToIncidents(setIncidents), []);
+  useEffect(
+    () =>
+      subscribeToIncidents((nextIncidents) => {
+        setIncidents(nextIncidents);
+        setIncidentsLoading(false);
+      }),
+    []
+  );
 
   const createdIncidents = incidents.filter(
     (incident) => incident.createdByUid === user?.uid || incident.clientSessionId === clientSessionId
@@ -80,17 +91,23 @@ export default function HistoryPage() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950">
-        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading History...")}</p>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-5">
+        <GlassPanel tone="system" className="w-full max-w-sm p-5">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <p className="text-center text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading History...")}</p>
+          </div>
+        </GlassPanel>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-28 selection:bg-indigo-500/30">
-      <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-sky-600/10 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 pb-28 selection:bg-indigo-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.38),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
 
       <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
@@ -102,38 +119,28 @@ export default function HistoryPage() {
               {t("SOS requests and incidents you helped with")}
             </p>
           </div>
-          <div className="rounded-full border border-indigo-500/20 bg-indigo-950/30 px-3 py-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">{t("Live")}</span>
-          </div>
+          <StatusPill tone="system" pulse>{t("Live")}</StatusPill>
         </div>
       </header>
 
       <main className="relative z-10 mx-auto max-w-2xl space-y-6 px-5 py-6">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Card className="border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
-            <CardContent className="p-4">
+          <GlassPanel className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t("Created")}</p>
               <p className="mt-2 text-2xl font-extrabold text-zinc-100">{createdIncidents.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
-            <CardContent className="p-4">
+          </GlassPanel>
+          <GlassPanel className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t("Helped")}</p>
               <p className="mt-2 text-2xl font-extrabold text-zinc-100">{helpedIncidents.length}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-amber-500/20 bg-amber-950/20 shadow-none backdrop-blur-md">
-            <CardContent className="p-4">
+          </GlassPanel>
+          <GlassPanel tone="warning" className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t("Pending")}</p>
               <p className="mt-2 text-2xl font-extrabold text-amber-100">{pendingCount}</p>
-            </CardContent>
-          </Card>
-          <Card className="border-emerald-500/20 bg-emerald-950/20 shadow-none backdrop-blur-md">
-            <CardContent className="p-4">
+          </GlassPanel>
+          <GlassPanel tone="success" className="p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t("Closed")}</p>
               <p className="mt-2 text-2xl font-extrabold text-emerald-100">{acceptedCount + resolvedCount}</p>
-            </CardContent>
-          </Card>
+          </GlassPanel>
         </div>
 
         <section className="space-y-4">
@@ -142,15 +149,21 @@ export default function HistoryPage() {
             <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-300">{t("Activity Records")}</h2>
           </div>
 
-          {activityRecords.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center">
+          {incidentsLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </div>
+          ) : activityRecords.length === 0 ? (
+            <Alert className="border-dashed border-zinc-800/80 bg-zinc-950/30 p-8 text-center">
               <History size={28} className="mx-auto mb-3 text-zinc-600" />
-              <p className="text-sm font-medium text-zinc-500">{t("No activity records yet.")}</p>
+              <AlertTitle>{t("Activity Records")}</AlertTitle>
+              <AlertDescription>{t("No activity records yet.")}</AlertDescription>
               <Link href="/sos" className="mt-4 inline-flex items-center text-xs font-bold uppercase tracking-widest text-indigo-300 hover:text-indigo-200">
                 {t("Send SOS")}
                 <ArrowRight size={14} className={`ml-1.5 ${isAr ? "rotate-180" : ""}`} />
               </Link>
-            </div>
+            </Alert>
           ) : (
             activityRecords.map((incident) => {
               const sosType = sosTypes.find((type) => type.id === incident.type);
@@ -174,16 +187,9 @@ export default function HistoryPage() {
                           </span>
                         </span>
                       </span>
-                      <Badge
-                        variant="outline"
-                        className={
-                          incident.status === "pending"
-                            ? "border-amber-500/35 bg-amber-950/30 text-amber-400"
-                            : "border-emerald-500/35 bg-emerald-950/30 text-emerald-400"
-                        }
-                      >
+                      <StatusPill tone={incident.status === "pending" ? "warning" : "success"} pulse={incident.status === "pending"}>
                         {t(incident.status.charAt(0).toUpperCase() + incident.status.slice(1))}
-                      </Badge>
+                      </StatusPill>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 p-4">

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Tatweer submission docs
+    url: https://github.com/Mukesh-cpu-gif/Tatweer_Hackathon-The_Lost_Packets
+    about: Review README and docs before opening a new issue.

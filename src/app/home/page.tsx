@@ -18,12 +18,24 @@ import {
   Tractor,
   User,
   X,
+  Mic,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { EmergencyCommandTile } from "@/components/EmergencyCommandTile";
+import { GlassPanel } from "@/components/GlassPanel";
+import { StatusPill } from "@/components/StatusPill";
 import RiskRadar from "@/components/RiskRadar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { calculateDistance } from "@/lib/geo";
@@ -49,6 +61,15 @@ const iconMap: Record<string, React.ElementType> = {
   Fuel,
 };
 
+const commandToneByType: Record<string, "danger" | "warning" | "system" | "gps" | "neutral"> = {
+  venomous_bite: "danger",
+  medical: "danger",
+  vehicle_stuck: "warning",
+  sick_livestock: "warning",
+  out_of_fuel: "system",
+  water_emergency: "gps",
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { t, language, toggleLanguage, isAr } = useLanguage();
@@ -56,6 +77,7 @@ export default function HomePage() {
   const [authLoading, setAuthLoading] = useState(isFirebaseConfigured);
   const [profile, setProfile] = useState<CommunityProfile | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [incidentsLoading, setIncidentsLoading] = useState(true);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
   const [selectedBlocks, setSelectedBlocks] = useState<IncidentBlock[]>([]);
   const [dismissedPromptId, setDismissedPromptId] = useState<string | null>(null);
@@ -88,7 +110,14 @@ export default function HomePage() {
     return subscribeCommunityProfile(uid, setProfile);
   }, [user]);
 
-  useEffect(() => subscribeToIncidents((nextIncidents) => setIncidents(nextIncidents.slice(0, 8))), []);
+  useEffect(
+    () =>
+      subscribeToIncidents((nextIncidents) => {
+        setIncidents(nextIncidents.slice(0, 8));
+        setIncidentsLoading(false);
+      }),
+    []
+  );
 
   useEffect(() => {
     if (!selectedIncident) return;
@@ -101,15 +130,25 @@ export default function HomePage() {
     profile?.name.trim() &&
     profile.phone.trim() &&
     profile.vehicleType.trim() &&
-    profile.skills.length > 0
+    profile.skills.length > 0 &&
+    profile.location
   );
+  const profileMissingItems = [
+    !profile?.name.trim() ? t("Name") : "",
+    !profile?.phone.trim() ? t("Phone") : "",
+    !profile?.vehicleType.trim() ? t("Vehicle") : "",
+    !profile?.skills.length ? t("Skills") : "",
+    !profile?.location ? t("GPS Location") : "",
+  ].filter(Boolean);
+  const profileCompletion = Math.round(((5 - profileMissingItems.length) / 5) * 100);
   const profileStatusLabel = !profileComplete
     ? t("Profile incomplete")
     : profile?.available
       ? t("Available to help")
       : t("Profile offline");
+  const profileStatusTone = !profileComplete ? "warning" : profile?.available ? "success" : "offline";
   const profileStatusDotClass = !profileComplete
-    ? "animate-pulse bg-rose-500"
+    ? "animate-pulse bg-amber-500"
     : profile?.available
       ? "bg-emerald-400"
       : "bg-zinc-500";
@@ -163,18 +202,27 @@ export default function HomePage() {
 
   if (authLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950">
-        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading Aounak...")}</p>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-5">
+        <GlassPanel tone="system" className="w-full max-w-sm p-5">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-10 w-full" />
+            <div className="grid grid-cols-3 gap-3">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </div>
+            <p className="text-center text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading Aounak...")}</p>
+          </div>
+        </GlassPanel>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-28 selection:bg-indigo-500/30">
-      <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-600/20 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] right-[-10%] h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[100px]" />
-      <div className="pointer-events-none absolute left-[20%] top-[40%] h-[300px] w-[300px] rounded-full bg-sky-600/10 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 pb-28 selection:bg-indigo-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.42),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/40 backdrop-blur-xl">
         <div className="relative mx-auto flex max-w-2xl items-center justify-between px-5 py-5">
@@ -213,14 +261,48 @@ export default function HomePage() {
         {!profile && (
           <Link
             href="/profile?setup=1"
-            className="flex cursor-pointer items-start gap-3 rounded-2xl border border-rose-500/35 bg-rose-950/25 p-4 transition-all duration-300 hover:bg-rose-950/30"
+            className="block"
           >
-            <AlertCircle size={18} className="mt-0.5 shrink-0 animate-pulse text-rose-400" />
-            <p className="text-xs font-semibold leading-relaxed tracking-wide text-rose-200/90">
-              {t("Your Profile is incomplete. Tap user icon to set contact details.")}
-            </p>
+            <Alert variant="warning" className="transition-all duration-300 hover:bg-amber-950/25">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={18} className="mt-0.5 shrink-0 text-amber-400" />
+                <div>
+                  <AlertTitle>{t("Profile incomplete")}</AlertTitle>
+                  <AlertDescription>
+                    {t("Your Profile is incomplete. Tap user icon to set contact details.")}
+                  </AlertDescription>
+                </div>
+              </div>
+            </Alert>
           </Link>
         )}
+
+        <GlassPanel tone="system" className="p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                {t("Profile")}
+              </p>
+              <StatusPill tone={profileStatusTone} pulse={!profileComplete}>
+                {profileCompletion}%
+              </StatusPill>
+            </div>
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                {t("Status")}
+              </p>
+              <StatusPill tone={profileStatusTone}>{profileStatusLabel}</StatusPill>
+            </div>
+            <div>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                {t("GPS Location")}
+              </p>
+              <StatusPill tone={profile?.location ? "gps" : "warning"} pulse={!profile?.location}>
+                {profile?.location ? t("Ready") : t("Not set")}
+              </StatusPill>
+            </div>
+          </div>
+        </GlassPanel>
 
         <RiskRadar />
 
@@ -234,24 +316,20 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             {sosTypes.map((sos) => {
               const Icon = sos.lucideIconName && iconMap[sos.lucideIconName] ? iconMap[sos.lucideIconName] : Activity;
-              const style = sos.styleConfig ?? {
-                bg: "bg-zinc-900/40 border border-zinc-800/50 hover:bg-white/5",
-                text: "text-zinc-300",
-                iconColor: "text-zinc-400",
-              };
 
               return (
                 <Link
                   key={sos.id}
                   href={`/sos/report?type=${sos.id}&returnTo=/home`}
-                  className={`group relative w-full overflow-hidden rounded-2xl p-5 text-center ${style.bg}`}
+                  className="block"
                 >
-                  <div className="relative flex flex-col items-center">
-                    <Icon size={32} strokeWidth={1.5} className={`${style.iconColor} mb-3 transition-transform duration-500 group-hover:scale-110`} />
-                    <div className={`text-sm font-semibold uppercase tracking-wide ${style.text}`}>
-                      {language === "ar" ? sos.labelAr : sos.label}
-                    </div>
-                  </div>
+                  <EmergencyCommandTile
+                    icon={Icon}
+                    label={language === "ar" ? sos.labelAr : sos.label}
+                    description={language === "ar" ? sos.descriptionAr : sos.description}
+                    tone={commandToneByType[sos.id] ?? "neutral"}
+                    isRtl={isAr}
+                  />
                 </Link>
               );
             })}
@@ -266,8 +344,16 @@ export default function HomePage() {
             </h2>
           </div>
           <div className="space-y-4">
-            {incidents.length === 0 ? (
-              <p className="text-sm font-medium text-zinc-500">{t("No recent incidents recorded.")}</p>
+            {incidentsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : incidents.length === 0 ? (
+              <Alert variant="default" className="border-dashed border-zinc-800/80 bg-zinc-950/30">
+                <AlertTitle>{t("Recent Activity")}</AlertTitle>
+                <AlertDescription>{t("No recent incidents recorded.")}</AlertDescription>
+              </Alert>
             ) : (
               incidents.map((incident) => {
                 const sosType = sosTypes.find((sos) => sos.id === incident.type);
@@ -283,8 +369,8 @@ export default function HomePage() {
                     }}
                     className="block w-full text-left"
                   >
-                    <Card className="rounded-2xl border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-t-indigo-500/30">
-                      <CardContent className="pb-5 pt-5">
+                    <GlassPanel interactive className="p-0">
+                      <div className="p-5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-4">
                             <div className="rounded-full border border-zinc-800 bg-zinc-950/50 p-2.5">
@@ -299,16 +385,9 @@ export default function HomePage() {
                               </p>
                             </div>
                           </div>
-                          <Badge
-                            variant="outline"
-                            className={
-                              incident.status === "pending"
-                                ? "border-amber-500/30 bg-amber-950/30 font-medium text-amber-400"
-                                : "border-emerald-500/30 bg-emerald-950/30 font-medium text-emerald-400"
-                            }
-                          >
+                          <StatusPill tone={incident.status === "pending" ? "warning" : "success"} pulse={incident.status === "pending"}>
                             {t(incident.status.charAt(0).toUpperCase() + incident.status.slice(1))}
-                          </Badge>
+                          </StatusPill>
                         </div>
                         {incident.aiClassification && (
                           <div className="mt-4 flex items-center gap-2.5 rounded-xl border border-indigo-500/20 bg-indigo-950/30 px-3.5 py-2.5">
@@ -318,8 +397,8 @@ export default function HomePage() {
                             </span>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
+                      </div>
+                    </GlassPanel>
                   </button>
                 );
               })
@@ -328,43 +407,33 @@ export default function HomePage() {
         </section>
       </main>
 
-      {selectedIncident && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedIncident(null);
-              setSelectedBlocks([]);
-            }}
-            className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md"
-            aria-label={t("Close incident details")}
-          />
-          <Card className="relative z-10 max-h-[82vh] w-full max-w-lg overflow-y-auto rounded-2xl border-zinc-800 bg-zinc-900/95 shadow-2xl">
-            <CardHeader className="border-b border-zinc-800/60 pb-4">
+      <Dialog
+        open={Boolean(selectedIncident)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedIncident(null);
+            setSelectedBlocks([]);
+          }
+        }}
+      >
+        {selectedIncident && (
+          <DialogContent closeLabel={t("Close incident details")} className="border-white/10 bg-zinc-950/95">
+            <DialogHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-base font-bold uppercase tracking-widest text-zinc-100">
+                  <DialogTitle>
                     {language === "ar"
                       ? sosTypes.find((type) => type.id === selectedIncident.type)?.labelAr ?? selectedIncident.type
                       : sosTypes.find((type) => type.id === selectedIncident.type)?.label ?? selectedIncident.type}
-                  </CardTitle>
-                  <p className="mt-1 font-mono text-xs text-indigo-200/50">ID: {selectedIncident.id}</p>
+                  </DialogTitle>
+                  <DialogDescription className="font-mono">ID: {selectedIncident.id}</DialogDescription>
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setSelectedIncident(null);
-                    setSelectedBlocks([]);
-                  }}
-                  className="h-8 w-8 rounded-full text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                >
-                  <X size={17} />
-                </Button>
+                <StatusPill tone={selectedIncident.status === "pending" ? "warning" : "success"} pulse={selectedIncident.status === "pending"}>
+                  {t(selectedIncident.status.charAt(0).toUpperCase() + selectedIncident.status.slice(1))}
+                </StatusPill>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
+            </DialogHeader>
+            <div className="space-y-4">
               <div className="grid gap-3 text-sm">
                 <div className="flex justify-between gap-4">
                   <span className="text-zinc-500">{t("Requester")}</span>
@@ -392,6 +461,18 @@ export default function HomePage() {
                 ))}
               </div>
 
+              {selectedIncident.isVoiceCommand && (
+                <div className="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 flex gap-3 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
+                  <Mic size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div>
+                    <p className="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mb-0.5">Created via Voice Command</p>
+                    <p className="text-xs text-indigo-200/80 leading-relaxed font-medium tracking-wide">
+                      ⚠️ Generated via Voice AI. May contain transcription errors; please verify details with requester.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2 border-t border-zinc-800/70 pt-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t("Request Details")}</p>
                 {selectedBlocks.length === 0 ? (
@@ -409,9 +490,11 @@ export default function HomePage() {
               </div>
 
               {profile && selectedIncident.status === "pending" && isOwnIncident(selectedIncident) && (
-                <p className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-3 text-center text-xs font-semibold uppercase tracking-widest text-indigo-200/80">
-                  {t("This is your request. Nearby helpers can accept it.")}
-                </p>
+                <Alert variant="system">
+                  <AlertDescription className="text-center font-semibold uppercase tracking-widest">
+                    {t("This is your request. Nearby helpers can accept it.")}
+                  </AlertDescription>
+                </Alert>
               )}
 
               {profile && selectedIncident.status === "pending" && !isOwnIncident(selectedIncident) && (
@@ -420,18 +503,18 @@ export default function HomePage() {
                   {t("I Can Help")}
                 </Button>
               )}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {helperPrompt && (
         <div className="fixed inset-x-4 bottom-24 z-[70] mx-auto max-w-lg">
-          <Card className="overflow-hidden rounded-2xl border border-emerald-500/30 bg-zinc-900/95 shadow-[0_0_35px_rgba(16,185,129,0.18)] backdrop-blur-xl">
-            <CardContent className="space-y-4 p-4">
+          <GlassPanel tone="success" className="p-4 shadow-[0_0_35px_rgba(16,185,129,0.16)]">
+            <div className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{t("Nearby Match")}</p>
+                  <StatusPill tone="success" pulse>{t("Nearby Match")}</StatusPill>
                   <h3 className="mt-1 text-sm font-bold uppercase tracking-wide text-zinc-100">
                     {language === "ar"
                       ? sosTypes.find((type) => type.id === helperPrompt.incident.type)?.labelAr
@@ -462,8 +545,8 @@ export default function HomePage() {
                   <ArrowRight size={14} className={`ml-2 ${isAr ? "rotate-180" : ""}`} />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassPanel>
         </div>
       )}
 

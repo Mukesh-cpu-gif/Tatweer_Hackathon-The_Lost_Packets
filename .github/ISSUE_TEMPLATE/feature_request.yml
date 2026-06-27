@@ -1,0 +1,40 @@
+name: Feature request
+description: Suggest an improvement for the Aounak MVP or future deployment.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: What user need does this address?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the smallest useful version.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - SOS requester flow
+        - Responder flow
+        - Profile/readiness
+        - Offline/PWA
+        - Maps/routing
+        - Documentation
+        - Deployment/security
+    validations:
+      required: true
+  - type: checkboxes
+    id: evidence
+    attributes:
+      label: Submission wording
+      options:
+        - label: I understand future features should not be documented as implemented until they are working.
+          required: true

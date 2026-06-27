@@ -5,10 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { onAuthStateChanged, signOut, updateProfile, type User as FirebaseUser } from "firebase/auth";
 import { AlertCircle, Car, CheckCircle2, LogOut, MapPin, Save, Stethoscope, User } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
+import { GlassPanel } from "@/components/GlassPanel";
+import { ProfileCompletionCard } from "@/components/ProfileCompletionCard";
+import { StatusPill } from "@/components/StatusPill";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { type CommunityProfile, saveCommunityProfile, subscribeCommunityProfile } from "@/lib/db";
@@ -196,19 +202,35 @@ export default function ProfileClient() {
     }
   };
 
+  const profileMissingItems = [
+    !form.name.trim() ? t("Name") : "",
+    !form.phone.trim() ? t("Phone") : "",
+    !form.vehicleType.trim() ? t("Vehicle") : "",
+    form.skills.length === 0 ? t("Skills") : "",
+    !form.location ? t("GPS Location") : "",
+  ].filter(Boolean);
+  const profileCompletion = Math.round(((5 - profileMissingItems.length) / 5) * 100);
+
   if (authLoading || profileLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950">
-        <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading Profile...")}</p>
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-5">
+        <GlassPanel tone="system" className="w-full max-w-sm p-5">
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-2 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <p className="text-center text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading Profile...")}</p>
+          </div>
+        </GlassPanel>
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-28 selection:bg-indigo-500/30">
-      <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-sky-600/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 pb-28 selection:bg-indigo-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.38),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
 
       <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/40 backdrop-blur-xl">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
@@ -235,25 +257,37 @@ export default function ProfileClient() {
 
       <main className="relative z-10 mx-auto max-w-2xl space-y-6 px-5 py-6">
         {(setupMode || !profile) && (
-          <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-4">
-            <p className="text-xs font-semibold leading-relaxed tracking-wide text-indigo-100/80">
+          <Alert variant="system">
+            <AlertTitle>{t("Community Setup")}</AlertTitle>
+            <AlertDescription>
               {t("Complete this once so Aounak can match your skills to nearby incidents and share the right contact details during emergencies.")}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
 
         {error && (
-          <div className="flex items-start gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3">
-            <AlertCircle size={16} className="mt-0.5 shrink-0 text-rose-400" />
-            <p className="text-xs text-rose-300/90">{error}</p>
-          </div>
+          <Alert variant="danger">
+            <div className="flex items-start gap-2">
+              <AlertCircle size={16} className="mt-0.5 shrink-0 text-rose-400" />
+              <AlertDescription>{error}</AlertDescription>
+            </div>
+          </Alert>
         )}
 
         {notice && (
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-300">
-            {notice}
-          </div>
+          <Alert variant="success">
+            <AlertDescription className="font-semibold">{notice}</AlertDescription>
+          </Alert>
         )}
+
+        <ProfileCompletionCard
+          title={t("Profile readiness")}
+          subtitle={t("Contact, skills, vehicle, and medical readiness")}
+          percentage={profileCompletion}
+          missingItems={profileMissingItems}
+          completeLabel={t("Ready")}
+          incompleteLabel={t("Profile incomplete")}
+        />
 
         <form onSubmit={handleSave} className="space-y-6">
           <Card className="border border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
@@ -357,17 +391,17 @@ export default function ProfileClient() {
               <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/30 px-3 py-2.5">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">{t("Available to Help")}</p>
-                  <p className="mt-0.5 text-xs text-indigo-200/50">{form.available ? t("Available") : t("Offline")}</p>
+                  <div className="mt-1">
+                    <StatusPill tone={form.available ? "success" : "offline"}>
+                      {form.available ? t("Available") : t("Offline")}
+                    </StatusPill>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setForm((current) => ({ ...current, available: !current.available }))}
-                  className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors duration-300 ${
-                    form.available ? "bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.4)]" : "bg-zinc-700/50"
-                  }`}
-                >
-                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 ${form.available ? "translate-x-8" : "translate-x-1"}`} />
-                </button>
+                <Switch
+                  checked={form.available}
+                  onCheckedChange={(checked) => setForm((current) => ({ ...current, available: checked }))}
+                  aria-label={t("Available to Help")}
+                />
               </div>
             </CardContent>
           </Card>

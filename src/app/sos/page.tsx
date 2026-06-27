@@ -37,7 +37,7 @@ export default function SOSChooserPage() {
           onClick={toggleLanguage}
           className="rounded-full border border-zinc-700/50 bg-zinc-900/50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-200/90 shadow-md transition-all duration-300 hover:bg-zinc-800 active:scale-95"
         >
-          {language === "en" ? "عربي 🌐" : "🌐 EN"}
+          {isAr ? "EN 🌐" : "AR 🌐"}
         </button>
       </nav>
 
@@ -65,7 +65,7 @@ export default function SOSChooserPage() {
             };
 
             return (
-              <Link key={sos.id} href={`/sos/report?type=${sos.id}`} className="block">
+              <Link key={sos.id} href={`/sos/report?type=${sos.id}&returnTo=/sos`} className="block">
                 <Card className={`group min-h-36 overflow-hidden rounded-2xl shadow-none ${style.bg}`}>
                   <CardContent className="flex h-full flex-col items-center justify-between p-5 text-center">
                     <Icon size={34} strokeWidth={1.5} className={`${style.iconColor} mb-3 transition-transform duration-500 group-hover:scale-110`} />
@@ -73,11 +73,6 @@ export default function SOSChooserPage() {
                       <p className={`text-sm font-bold uppercase tracking-wide ${style.text}`}>
                         {language === "ar" ? sos.labelAr : sos.label}
                       </p>
-                      {language === "en" && (
-                        <p className="mt-1 text-xs font-medium text-indigo-200/50" dir="rtl">
-                          {sos.labelAr}
-                        </p>
-                      )}
                     </div>
                     <ArrowRight size={15} className={`mt-4 text-zinc-500 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-rose-300 ${isAr ? "rotate-180" : ""}`} />
                   </CardContent>

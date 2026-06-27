@@ -218,11 +218,6 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                   }`}>
                     {isAr ? v.labelAr : v.label.split(" ")[0]}
                   </span>
-                  <span className={`text-[8px] font-medium opacity-50 mt-0.5 ${
-                    isSelected ? "text-amber-400" : "text-zinc-500"
-                  }`} dir="rtl">
-                    {isAr ? v.label.split(" ")[0] : v.labelAr}
-                  </span>
                 </button>
               );
             })}
@@ -288,11 +283,6 @@ export default function DeflationGuide({ onChange }: DeflationGuideProps) {
                     isSelected ? "text-amber-300" : "text-zinc-400 group-hover:text-zinc-200"
                   }`}>
                     {isAr ? tOp.labelAr : tOp.label}
-                  </span>
-                  <span className={`text-[9px] font-medium opacity-50 mt-0.5 ${
-                    isSelected ? "text-amber-400" : "text-zinc-500"
-                  }`} dir="rtl">
-                    {isAr ? tOp.label : tOp.labelAr}
                   </span>
                 </button>
               );

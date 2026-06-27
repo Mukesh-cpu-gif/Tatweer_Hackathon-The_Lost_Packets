@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { calculateDistance } from "@/lib/geo";
-import { mockResponders } from "@/lib/mockData";
+import type { Responder } from "@/lib/mockData";
 import MapWrapper from "@/components/MapWrapper";
 import { Fuel, Navigation, Compass, Maximize2, X } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
@@ -48,11 +48,12 @@ function getCompassDirection(bearing: number): string {
 interface FuelCalculatorProps {
   coordinates: { lat: number; lng: number } | null;
   onChange: (info: string) => void;
+  responders?: Responder[];
 }
 
 const FALLBACK_COORDS = { lat: 23.543, lng: 55.487 };
 
-export default function FuelCalculator({ coordinates, onChange }: FuelCalculatorProps) {
+export default function FuelCalculator({ coordinates, onChange, responders = [] }: FuelCalculatorProps) {
   const { t, isAr } = useLanguage();
 
   // Use stable fallback coordinates if GPS coords are not loaded yet
@@ -137,7 +138,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
   // Compute 3 nearest active responders relative to stranded user
   const nearestResponders = useMemo(() => {
     const currentCoords = { lat: activeLat, lng: activeLng };
-    return mockResponders
+    return responders
       .filter((r) => r.available)
       .map((r) => {
         const distance = calculateDistance(currentCoords, r.location);
@@ -151,7 +152,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
         location: r.location,
         vehicleType: r.vehicleType,
       }));
-  }, [activeLat, activeLng]);
+  }, [activeLat, activeLng, responders]);
 
   // Automatically update selected station if the computed list changes, preventing cycles
   // Automatically update selected station is now handled purely and reactively via useMemo derivation.
@@ -255,7 +256,7 @@ export default function FuelCalculator({ coordinates, onChange }: FuelCalculator
                         {isAr ? station.nameAr : station.name}
                       </p>
                       <p className="text-[10px] text-zinc-500 mt-0.5">
-                        {isAr ? station.name : station.nameAr} · {t("Direction:")} {station.direction} ({station.bearing.toFixed(0)}°)
+                        {t("Direction:")} {station.direction} ({station.bearing.toFixed(0)}°)
                       </p>
                     </div>
                   </div>

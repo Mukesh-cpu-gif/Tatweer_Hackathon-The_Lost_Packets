@@ -14,7 +14,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import type { Coordinates } from "./geo";
-import { sosTypes, mockResponders, mockIncidents, mockWeatherAlerts } from "./mockData";
+import { sosTypes } from "./mockData";
 import type { Incident, Responder, SOSCategory, WeatherAlert } from "./mockData";
 
 const FIRESTORE_FALLBACK_MS = 3000;
@@ -101,7 +101,7 @@ export const getClientSessionId = () => {
 };
 
 const warnFirestoreFallback = (feature: string, error?: unknown) => {
-  console.warn(`${feature} is using local demo data because Firestore is unavailable.`, error);
+  console.warn(`${feature} is using local cache/fallback because Firestore is unavailable or denied.`, error);
 };
 
 const localCommunityProfileKey = (uid: string) => `aounak-community-profile-${uid}`;
@@ -236,7 +236,7 @@ const writeLocalIncidents = (incidents: Incident[]) => {
 
 const getIncidentFallback = () => {
   const localIncidents = readLocalIncidents();
-  return [...localIncidents, ...mockIncidents].sort(
+  return localIncidents.sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
 };
@@ -382,7 +382,7 @@ export const subscribeResponderDirectory = (callback: (responders: Responder[]) 
     if (settled) return;
     settled = true;
     warnFirestoreFallback("Responder directory");
-    callback(mockResponders);
+    callback([]);
     unsubscribe();
   }, FIRESTORE_FALLBACK_MS);
 
@@ -396,13 +396,13 @@ export const subscribeResponderDirectory = (callback: (responders: Responder[]) 
         const responder = toResponderDirectoryProfile(documentSnapshot.id, documentSnapshot.data());
         if (responder) responders.push(responder);
       });
-      callback(responders.length ? responders : mockResponders);
+      callback(responders);
     },
     (error) => {
       settled = true;
       clearTimeout(fallbackTimer);
       warnFirestoreFallback("Responder directory", error);
-      callback(mockResponders);
+      callback([]);
     }
   );
 
@@ -715,7 +715,7 @@ export const subscribeToWeatherAlerts = (callback: (alerts: WeatherAlert[]) => v
     if (settled) return;
     settled = true;
     warnFirestoreFallback("Weather alerts");
-    callback(mockWeatherAlerts);
+    callback([]);
     unsubscribe();
   }, FIRESTORE_FALLBACK_MS);
 
@@ -732,13 +732,13 @@ export const subscribeToWeatherAlerts = (callback: (alerts: WeatherAlert[]) => v
           alerts.push({ ...data, id: documentSnapshot.id });
         }
       });
-      callback(alerts.length ? alerts : mockWeatherAlerts);
+      callback(alerts);
     },
     (error) => {
       settled = true;
       clearTimeout(fallbackTimer);
       warnFirestoreFallback("Weather alerts", error);
-      callback(mockWeatherAlerts);
+      callback([]);
     }
   );
 
@@ -749,39 +749,5 @@ export const subscribeToWeatherAlerts = (callback: (alerts: WeatherAlert[]) => v
 };
 
 export const seedDatabase = async () => {
-  const incidentsRef = collection(db, "incidents");
-  for (const incident of mockIncidents) {
-    await setDoc(doc(incidentsRef, incident.id), {
-      ...incident,
-      requiredSkills: incident.requiredSkills,
-      clientSessionId: incident.clientSessionId ?? "seeded-demo",
-      createdByUid: incident.createdByUid ?? null,
-      responderCounts: incident.responderCounts ?? { notified: 3, enRoute: incident.status === "accepted" ? 1 : 0 },
-      acceptedBy: incident.acceptedBy ?? [],
-      acceptedByNames: incident.acceptedByNames ?? [],
-      timestamp: new Date(incident.timestamp),
-      updatedAt: new Date(incident.timestamp),
-    });
-  }
-
-  const responderDirectoryRef = collection(db, "responderDirectory");
-  const legacyRespondersRef = collection(db, "responders");
-  for (const responder of mockResponders) {
-    const directoryProfile = {
-      name: responder.name,
-      publicPhone: responder.phone,
-      skills: responder.skills,
-      location: responder.location,
-      available: responder.available,
-      vehicleType: responder.vehicleType,
-      updatedAt: serverTimestamp(),
-    };
-    await setDoc(doc(responderDirectoryRef, responder.id), directoryProfile);
-    await setDoc(doc(legacyRespondersRef, responder.id), directoryProfile);
-  }
-
-  const alertsRef = collection(db, "weatherAlerts");
-  for (const alert of mockWeatherAlerts) {
-    await setDoc(doc(alertsRef, alert.id), alert);
-  }
+  console.warn("Seed endpoint is disabled because the app should not create demo responders, incidents, or alerts in production-like flows.");
 };

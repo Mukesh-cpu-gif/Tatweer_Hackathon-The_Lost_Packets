@@ -8,6 +8,7 @@ import { AlertCircle, ChevronLeft, Mail, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured, missingFirebaseEnv } from "@/lib/firebase";
 
 const AUTH_TIMEOUT_MS = 15000;
@@ -33,6 +34,7 @@ const withAuthTimeout = async <T,>(operation: Promise<T>, message: string) => {
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t, isAr } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -55,11 +57,11 @@ export default function LoginPage() {
     try {
       await withAuthTimeout(
         signInWithPopup(auth, new GoogleAuthProvider()),
-        "Firebase sign-in did not respond. Check Firebase config and authorized domains."
+        t("Firebase sign-in did not respond. Check Firebase config and authorized domains.")
       );
       router.push("/home");
     } catch (nextError: unknown) {
-      setError(getErrorMessage(nextError, "Failed to sign in with Google."));
+      setError(getErrorMessage(nextError, t("Failed to sign in with Google.")));
       setLoading(false);
     }
   };
@@ -72,11 +74,11 @@ export default function LoginPage() {
     try {
       await withAuthTimeout(
         signInWithEmailAndPassword(auth, email, password),
-        "Firebase sign-in did not respond. Check Firebase config and authorized domains."
+        t("Firebase sign-in did not respond. Check Firebase config and authorized domains.")
       );
       router.push("/home");
     } catch (nextError: unknown) {
-      setError(getErrorMessage(nextError, "Authentication failed. Please check your credentials."));
+      setError(getErrorMessage(nextError, t("Authentication failed. Please check your credentials.")));
       setLoading(false);
     }
   };
@@ -89,7 +91,7 @@ export default function LoginPage() {
       <nav className="absolute left-0 top-0 z-10 w-full px-5 py-6">
         <Link href="/">
           <Button variant="ghost" className="-ml-2 h-10 w-10 rounded-full p-0 text-zinc-400 hover:bg-white/5 hover:text-white">
-            <ChevronLeft size={24} strokeWidth={1.5} />
+            <ChevronLeft size={24} strokeWidth={1.5} className={isAr ? "rotate-180" : ""} />
           </Button>
         </Link>
       </nav>
@@ -101,18 +103,18 @@ export default function LoginPage() {
             <Shield size={48} strokeWidth={1.5} className="text-indigo-400" />
           </div>
           <h1 className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-3xl font-bold uppercase tracking-widest text-transparent">
-            Aounak Login
+            {t("Aounak Login")}
           </h1>
-          <p className="text-lg font-medium tracking-wide text-indigo-200/60">Community Access</p>
+          <p className="text-lg font-medium tracking-wide text-indigo-200/60">{t("Community Access")}</p>
         </div>
 
         <Card className="border border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
           <CardHeader className="border-b border-zinc-800/50 pb-4 text-center">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-300">
-              Sign In
+              {t("Sign In")}
             </CardTitle>
             <CardDescription className="mt-1 text-xs text-zinc-500">
-              Return to your profile, history, and helper network.
+              {t("Return to your profile, history, and helper network.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 pt-6">
@@ -127,7 +129,7 @@ export default function LoginPage() {
               <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
                 <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" />
                 <p className="text-xs text-amber-200/90">
-                  Firebase is missing {missingFirebaseEnv.length} required environment value{missingFirebaseEnv.length === 1 ? "" : "s"}.
+                  {t("Firebase is missing")} {missingFirebaseEnv.length} {t("required environment values.")}
                 </p>
               </div>
             )}
@@ -143,12 +145,12 @@ export default function LoginPage() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.16C1.43 8.55 1 10.22 1 12s.43 3.45 1.16 4.93l3.68-2.84z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.16 7.07l3.68 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              {loading ? "Connecting..." : "Continue with Google"}
+              {loading ? t("Connecting...") : t("Continue with Google")}
             </Button>
 
             <div className="relative flex items-center py-1">
               <div className="flex-grow border-t border-zinc-800" />
-              <span className="mx-4 flex-shrink-0 text-xs font-medium uppercase tracking-widest text-zinc-600">Or</span>
+              <span className="mx-4 flex-shrink-0 text-xs font-medium uppercase tracking-widest text-zinc-600">{t("Or")}</span>
               <div className="flex-grow border-t border-zinc-800" />
             </div>
 
@@ -164,7 +166,7 @@ export default function LoginPage() {
                 />
                 <Input
                   type="password"
-                  placeholder="Password"
+                  placeholder={t("Password")}
                   required
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -173,14 +175,14 @@ export default function LoginPage() {
               </div>
               <Button type="submit" disabled={!canUseFirebaseAuth} className="h-12 w-full bg-indigo-600 font-bold tracking-wider text-white hover:bg-indigo-500">
                 <Mail size={18} className="mr-2" />
-                {loading ? "Authenticating..." : "Sign In"}
+                {loading ? t("Authenticating...") : t("Sign In")}
               </Button>
             </form>
 
             <p className="text-center text-xs text-zinc-500">
-              New to Aounak?{" "}
+              {t("New to Aounak?")}{" "}
               <Link href="/register" className="font-semibold text-indigo-300 hover:text-indigo-200">
-                Register
+                {t("Register")}
               </Link>
             </p>
           </CardContent>

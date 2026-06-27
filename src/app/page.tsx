@@ -12,7 +12,7 @@ import { auth, isFirebaseConfigured } from "@/lib/firebase";
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { t, language, toggleLanguage, isAr } = useLanguage();
+  const { t, toggleLanguage, isAr } = useLanguage();
   const [checkingAuth, setCheckingAuth] = useState(isFirebaseConfigured);
 
   useEffect(() => {
@@ -45,11 +45,6 @@ export default function WelcomePage() {
         <div>
           <h1 className="flex items-center gap-2 bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-xl font-bold uppercase tracking-wider text-transparent">
             {t("Aounak")}
-            {language === "en" && (
-              <span className="font-sans text-lg font-medium tracking-normal text-indigo-200/60" dir="rtl">
-                عَوْنَك
-              </span>
-            )}
           </h1>
           <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200/50">
             {t("Rapid Response Network")}
@@ -61,7 +56,7 @@ export default function WelcomePage() {
           onClick={toggleLanguage}
           className="rounded-full border border-zinc-700/50 bg-zinc-900/50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-200/90 shadow-md transition-all duration-300 hover:bg-zinc-800 active:scale-95"
         >
-          {language === "en" ? "عربي 🌐" : "🌐 EN"}
+          {isAr ? "EN 🌐" : "AR 🌐"}
         </button>
       </header>
 

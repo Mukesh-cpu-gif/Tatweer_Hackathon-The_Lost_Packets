@@ -138,11 +138,6 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
                   }`}>
                     {isAr ? animal.labelAr : animal.label}
                   </span>
-                  <span className={`text-[9px] font-medium mt-0.5 opacity-55 text-center ${
-                    isSelected ? "text-indigo-300" : "text-zinc-500"
-                  }`} dir="rtl">
-                    {isAr ? animal.label : animal.labelAr}
-                  </span>
                 </button>
               );
             })}
@@ -205,9 +200,6 @@ export default function LivestockSelector({ onChange }: LivestockSelectorProps) 
               <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400/80">{t("Computed Classification")}</p>
               <p className="text-sm font-bold text-zinc-200 mt-1">
                 {isAr ? ageClassification.groupAr : ageClassification.group}
-                <span className="text-xs text-indigo-200/50 font-medium ml-1.5" dir="rtl">
-                  ({isAr ? ageClassification.group : ageClassification.groupAr})
-                </span>
               </p>
               <p className="text-xs text-zinc-400 mt-0.5">
                 {t("Age:")} {ageInput} {isAr ? (ageUnit === "years" ? "سنة" : "شهر") : ageUnit}

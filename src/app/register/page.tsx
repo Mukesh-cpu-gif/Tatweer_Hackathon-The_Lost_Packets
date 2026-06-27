@@ -8,6 +8,7 @@ import { AlertCircle, ChevronLeft, ShieldCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured, missingFirebaseEnv } from "@/lib/firebase";
 
 const AUTH_TIMEOUT_MS = 15000;
@@ -29,6 +30,7 @@ const withAuthTimeout = async <T,>(operation: Promise<T>, message: string) => {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t, isAr } = useLanguage();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -40,7 +42,7 @@ export default function RegisterPage() {
     if (!isFirebaseConfigured) return;
 
     if (!name.trim() || !email.trim() || password.length < 6) {
-      setError("Add your name, email, and a password of at least 6 characters.");
+      setError(t("Add your name, email, and a password of at least 6 characters."));
       return;
     }
 
@@ -50,7 +52,7 @@ export default function RegisterPage() {
     try {
       const credential = await withAuthTimeout(
         createUserWithEmailAndPassword(auth, email.trim(), password),
-        "Firebase account creation did not respond. Check Firebase config and authorized domains."
+        t("Firebase account creation did not respond. Check Firebase config and authorized domains.")
       );
 
       try {
@@ -61,7 +63,7 @@ export default function RegisterPage() {
 
       router.push("/profile?setup=1");
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : "Failed to create account.");
+      setError(nextError instanceof Error ? nextError.message : t("Failed to create account."));
       setLoading(false);
     }
   };
@@ -74,7 +76,7 @@ export default function RegisterPage() {
       <nav className="absolute left-0 top-0 z-10 w-full px-5 py-6">
         <Link href="/">
           <Button variant="ghost" className="-ml-2 h-10 w-10 rounded-full p-0 text-zinc-400 hover:bg-white/5 hover:text-white">
-            <ChevronLeft size={24} strokeWidth={1.5} />
+            <ChevronLeft size={24} strokeWidth={1.5} className={isAr ? "rotate-180" : ""} />
           </Button>
         </Link>
       </nav>
@@ -86,18 +88,18 @@ export default function RegisterPage() {
             <ShieldCheck size={48} strokeWidth={1.5} className="text-sky-400" />
           </div>
           <h1 className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-3xl font-bold uppercase tracking-widest text-transparent">
-            Register
+            {t("Register")}
           </h1>
-          <p className="text-lg font-medium tracking-wide text-sky-200/60">Join the community response network</p>
+          <p className="text-lg font-medium tracking-wide text-sky-200/60">{t("Join the community response network")}</p>
         </div>
 
         <Card className="border border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
           <CardHeader className="border-b border-zinc-800/50 pb-4 text-center">
             <CardTitle className="text-sm font-bold uppercase tracking-widest text-zinc-300">
-              Create Account
+              {t("Create Account")}
             </CardTitle>
             <CardDescription className="mt-1 text-xs text-zinc-500">
-              You will complete your contact, vehicle, skills, and medical details next.
+              {t("You will complete your contact, vehicle, skills, and medical details next.")}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -112,7 +114,7 @@ export default function RegisterPage() {
               <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
                 <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-400" />
                 <p className="text-xs text-amber-200/90">
-                  Firebase is missing {missingFirebaseEnv.length} required environment value{missingFirebaseEnv.length === 1 ? "" : "s"}.
+                  {t("Firebase is missing")} {missingFirebaseEnv.length} {t("required environment values.")}
                 </p>
               </div>
             )}
@@ -120,7 +122,7 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister} className="space-y-4">
               <Input
                 type="text"
-                placeholder="Full Name"
+                placeholder={t("Full Name")}
                 required
                 value={name}
                 onChange={(event) => setName(event.target.value)}
@@ -128,7 +130,7 @@ export default function RegisterPage() {
               />
               <Input
                 type="email"
-                placeholder="Email Address"
+                placeholder={t("Email Address")}
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -136,7 +138,7 @@ export default function RegisterPage() {
               />
               <Input
                 type="password"
-                placeholder="Password (Min 6 characters)"
+                placeholder={t("Password (Min 6 characters)")}
                 required
                 minLength={6}
                 value={password}
@@ -146,14 +148,14 @@ export default function RegisterPage() {
 
               <Button type="submit" disabled={!isFirebaseConfigured || loading} className="h-12 w-full bg-sky-600 font-bold tracking-wider text-white hover:bg-sky-500">
                 <UserPlus size={18} className="mr-2" />
-                {loading ? "Creating Account..." : "Create Account"}
+                {loading ? t("Creating Account...") : t("Create Account")}
               </Button>
             </form>
 
             <p className="mt-5 text-center text-xs text-zinc-500">
-              Already registered?{" "}
+              {t("Already registered?")}{" "}
               <Link href="/login" className="font-semibold text-sky-300 hover:text-sky-200">
-                Log in
+                {t("Log in")}
               </Link>
             </p>
           </CardContent>

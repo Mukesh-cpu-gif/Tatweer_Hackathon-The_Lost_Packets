@@ -8,6 +8,7 @@ import { Activity, ArrowRight, BadgeCheck, Bug, Droplet, Fuel, HeartPulse, Histo
 import BottomNav from "@/components/BottomNav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { getClientSessionId, subscribeToIncidents } from "@/lib/db";
 import { sosTypes } from "@/lib/mockData";
@@ -25,6 +26,7 @@ const iconMap: Record<string, React.ElementType> = {
 
 export default function HistoryPage() {
   const router = useRouter();
+  const { t, language, isAr } = useLanguage();
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(isFirebaseConfigured);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -71,16 +73,16 @@ export default function HistoryPage() {
 
   const timeAgo = (timestamp: string) => {
     const diff = Math.floor((now - new Date(timestamp).getTime()) / 60000);
-    if (diff < 1) return "Just now";
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
+    if (diff < 1) return t("Just now");
+    if (diff < 60) return `${diff}${t("m ago")}`;
+    return `${Math.floor(diff / 60)}${t("h ago")}`;
   };
 
   if (authLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">Loading History...</p>
+        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading History...")}</p>
       </div>
     );
   }
@@ -94,14 +96,14 @@ export default function HistoryPage() {
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <div>
             <h1 className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-xl font-bold uppercase tracking-wider text-transparent">
-              History
+              {t("History")}
             </h1>
             <p className="text-[10px] font-medium uppercase tracking-widest text-indigo-200/50">
-              SOS requests and incidents you helped with
+              {t("SOS requests and incidents you helped with")}
             </p>
           </div>
           <div className="rounded-full border border-indigo-500/20 bg-indigo-950/30 px-3 py-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Live</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">{t("Live")}</span>
           </div>
         </div>
       </header>
@@ -110,25 +112,25 @@ export default function HistoryPage() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Card className="border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Created</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t("Created")}</p>
               <p className="mt-2 text-2xl font-extrabold text-zinc-100">{createdIncidents.length}</p>
             </CardContent>
           </Card>
           <Card className="border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Helped</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{t("Helped")}</p>
               <p className="mt-2 text-2xl font-extrabold text-zinc-100">{helpedIncidents.length}</p>
             </CardContent>
           </Card>
           <Card className="border-amber-500/20 bg-amber-950/20 shadow-none backdrop-blur-md">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Pending</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400">{t("Pending")}</p>
               <p className="mt-2 text-2xl font-extrabold text-amber-100">{pendingCount}</p>
             </CardContent>
           </Card>
           <Card className="border-emerald-500/20 bg-emerald-950/20 shadow-none backdrop-blur-md">
             <CardContent className="p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Closed</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">{t("Closed")}</p>
               <p className="mt-2 text-2xl font-extrabold text-emerald-100">{acceptedCount + resolvedCount}</p>
             </CardContent>
           </Card>
@@ -137,16 +139,16 @@ export default function HistoryPage() {
         <section className="space-y-4">
           <div className="flex items-center gap-3">
             <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
-            <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-300">Activity Records</h2>
+            <h2 className="text-sm font-bold uppercase tracking-widest text-zinc-300">{t("Activity Records")}</h2>
           </div>
 
           {activityRecords.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-8 text-center">
               <History size={28} className="mx-auto mb-3 text-zinc-600" />
-              <p className="text-sm font-medium text-zinc-500">No activity records yet.</p>
+              <p className="text-sm font-medium text-zinc-500">{t("No activity records yet.")}</p>
               <Link href="/sos" className="mt-4 inline-flex items-center text-xs font-bold uppercase tracking-widest text-indigo-300 hover:text-indigo-200">
-                Send SOS
-                <ArrowRight size={14} className="ml-1.5" />
+                {t("Send SOS")}
+                <ArrowRight size={14} className={`ml-1.5 ${isAr ? "rotate-180" : ""}`} />
               </Link>
             </div>
           ) : (
@@ -163,12 +165,12 @@ export default function HistoryPage() {
                         <span className="rounded-xl border border-zinc-800 bg-zinc-900 p-2.5">
                           <Icon size={20} className="text-indigo-400" strokeWidth={1.5} />
                         </span>
-                        <span>
-                          <span className="block text-sm font-bold uppercase tracking-wide text-zinc-100">
-                            {sosType?.label ?? incident.type}
+                          <span>
+                            <span className="block text-sm font-bold uppercase tracking-wide text-zinc-100">
+                            {language === "ar" ? sosType?.labelAr ?? incident.type : sosType?.label ?? incident.type}
                           </span>
                           <span className="mt-0.5 block text-xs font-medium text-zinc-500">
-                            {isCreator ? "Created by you" : "Helped by you"} · {timeAgo(incident.timestamp)}
+                            {isCreator ? t("Created by you") : t("Helped by you")} · {timeAgo(incident.timestamp)}
                           </span>
                         </span>
                       </span>
@@ -180,22 +182,22 @@ export default function HistoryPage() {
                             : "border-emerald-500/35 bg-emerald-950/30 text-emerald-400"
                         }
                       >
-                        {incident.status}
+                        {t(incident.status.charAt(0).toUpperCase() + incident.status.slice(1))}
                       </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3 p-4">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-zinc-500">Responders</span>
+                      <span className="text-zinc-500">{t("Responders")}</span>
                       <span className="font-semibold text-zinc-200">
-                        {incident.responderCounts?.notified ?? 0} notified · {incident.responderCounts?.enRoute ?? 0} en route
+                        {incident.responderCounts?.notified ?? 0} {t("notified")} · {incident.responderCounts?.enRoute ?? 0} {t("en route")}
                       </span>
                     </div>
                     {incident.acceptedByNames && incident.acceptedByNames.length > 0 && (
                       <div className="flex items-start gap-2 rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-3">
                         <BadgeCheck size={16} className="mt-0.5 shrink-0 text-emerald-400" />
                         <p className="text-xs leading-relaxed text-emerald-200/80">
-                          Accepted by {incident.acceptedByNames.join(", ")}
+                          {t("Accepted by")} {incident.acceptedByNames.join(", ")}
                         </p>
                       </div>
                     )}

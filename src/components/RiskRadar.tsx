@@ -52,7 +52,7 @@ export default function RiskRadar() {
             <button
               onClick={() => setDismissed((prev) => new Set(prev).add(alert.id))}
               className={`absolute top-3 ${isAr ? "left-3" : "right-3"} text-white/30 hover:text-white/80 transition-colors`}
-              aria-label="Dismiss alert"
+              aria-label={t("Dismiss alert")}
             >
               <X size={18} strokeWidth={1.5} />
             </button>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { type CommunityProfile, saveCommunityProfile, subscribeCommunityProfile } from "@/lib/db";
 import type { Coordinates } from "@/lib/geo";
@@ -37,6 +38,7 @@ const createEmptyForm = (user?: FirebaseUser | null): ProfileFormState => ({
 export default function ProfileClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLanguage();
   const setupMode = searchParams.get("setup") === "1";
 
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -111,7 +113,7 @@ export default function ProfileClient() {
   const handleUseCurrentLocation = () => {
     setError(null);
     if (!("geolocation" in navigator)) {
-      setError("Location services are not available in this browser.");
+      setError(t("Location services are not available in this browser."));
       return;
     }
 
@@ -128,7 +130,7 @@ export default function ProfileClient() {
         setLocating(false);
       },
       () => {
-        setError("Location permission was blocked. You can save your profile and add GPS later.");
+        setError(t("Location permission was blocked. You can save your profile and add GPS later."));
         setLocating(false);
       },
       { enableHighAccuracy: true, timeout: 8000 }
@@ -161,7 +163,7 @@ export default function ProfileClient() {
     };
 
     if (!cleanedProfile.name || !cleanedProfile.phone) {
-      setError("Add your full name and phone number before saving.");
+      setError(t("Add your full name and phone number before saving."));
       return;
     }
 
@@ -185,10 +187,10 @@ export default function ProfileClient() {
         return;
       }
 
-      setNotice("Profile saved.");
+      setNotice(t("Profile saved."));
     } catch (nextError) {
       console.error("Profile save failed", nextError);
-      setError("Could not save your profile. Please try again.");
+      setError(t("Could not save your profile. Please try again."));
     } finally {
       setSaving(false);
     }
@@ -198,7 +200,7 @@ export default function ProfileClient() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950">
         <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">Loading Profile...</p>
+        <p className="text-sm font-bold uppercase tracking-widest text-zinc-400">{t("Loading Profile...")}</p>
       </div>
     );
   }
@@ -212,10 +214,10 @@ export default function ProfileClient() {
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
           <div>
             <h1 className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-xl font-bold uppercase tracking-wider text-transparent">
-              {setupMode || !profile ? "Community Setup" : "Profile"}
+              {setupMode || !profile ? t("Community Setup") : t("Profile")}
             </h1>
             <p className="text-[10px] font-medium uppercase tracking-widest text-indigo-200/50">
-              Contact, skills, vehicle, and medical readiness
+              {t("Contact, skills, vehicle, and medical readiness")}
             </p>
           </div>
           <Button
@@ -224,7 +226,7 @@ export default function ProfileClient() {
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-full text-zinc-400 hover:bg-rose-950/30 hover:text-rose-400"
-            title="Log out"
+            title={t("Log out")}
           >
             <LogOut size={17} />
           </Button>
@@ -235,7 +237,7 @@ export default function ProfileClient() {
         {(setupMode || !profile) && (
           <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 p-4">
             <p className="text-xs font-semibold leading-relaxed tracking-wide text-indigo-100/80">
-              Complete this once so Aounak can match your skills to nearby incidents and share the right contact details during emergencies.
+              {t("Complete this once so Aounak can match your skills to nearby incidents and share the right contact details during emergencies.")}
             </p>
           </div>
         )}
@@ -258,21 +260,21 @@ export default function ProfileClient() {
             <CardHeader className="border-b border-zinc-800/50 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
                 <User size={16} className="text-indigo-400" />
-                User & Contact
+                {t("User & Contact")}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 pt-4 sm:grid-cols-2">
               <label className="space-y-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                Full Name
+                {t("Full Name")}
                 <Input
                   value={form.name}
                   onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                  placeholder="Enter your name"
+                  placeholder={t("Enter your name")}
                   className="h-11 border-zinc-700 bg-zinc-950/50 font-medium normal-case tracking-normal text-white"
                 />
               </label>
               <label className="space-y-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                Phone
+                {t("Phone")}
                 <Input
                   value={form.phone}
                   onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
@@ -287,25 +289,25 @@ export default function ProfileClient() {
             <CardHeader className="border-b border-zinc-800/50 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
                 <Car size={16} className="text-indigo-400" />
-                Vehicle & Location
+                {t("Vehicle & Location")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
               <label className="space-y-1.5 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                Vehicle Details
+                {t("Vehicle Details")}
                 <Input
                   value={form.vehicleType}
                   onChange={(event) => setForm((current) => ({ ...current, vehicleType: event.target.value }))}
-                  placeholder="Vehicle type or description"
+                  placeholder={t("Vehicle type or description")}
                   className="h-11 border-zinc-700 bg-zinc-950/50 font-medium normal-case tracking-normal text-white"
                 />
               </label>
 
               <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
                 <div className="rounded-lg border border-zinc-800 bg-zinc-950/40 px-3 py-2.5">
-                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">GPS Location</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t("GPS Location")}</p>
                   <p className="mt-1 font-mono text-xs text-zinc-300">
-                    {form.location ? `${form.location.lat.toFixed(4)}, ${form.location.lng.toFixed(4)}` : "Not set"}
+                    {form.location ? `${form.location.lat.toFixed(4)}, ${form.location.lng.toFixed(4)}` : t("Not set")}
                   </p>
                 </div>
                 <Button
@@ -316,7 +318,7 @@ export default function ProfileClient() {
                   className="min-h-12 border-zinc-700 bg-zinc-950/50 text-zinc-300 hover:bg-zinc-800"
                 >
                   <MapPin size={16} className="mr-2 text-indigo-400" />
-                  {locating ? "Locating..." : "Set GPS"}
+                  {locating ? t("Locating...") : t("Set GPS")}
                 </Button>
               </div>
             </CardContent>
@@ -326,7 +328,7 @@ export default function ProfileClient() {
             <CardHeader className="border-b border-zinc-800/50 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
                 <CheckCircle2 size={16} className="text-indigo-400" />
-                Skills & Availability
+                {t("Skills & Availability")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">
@@ -346,7 +348,7 @@ export default function ProfileClient() {
                       <span className={`flex h-4 w-4 items-center justify-center rounded-full border ${selected ? "border-indigo-400 bg-indigo-500" : "border-zinc-700"}`}>
                         {selected && <CheckCircle2 size={12} className="text-white" />}
                       </span>
-                      <span>{skill}</span>
+                      <span>{t(skill)}</span>
                     </label>
                   );
                 })}
@@ -354,8 +356,8 @@ export default function ProfileClient() {
 
               <div className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 bg-zinc-950/30 px-3 py-2.5">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Available to Help</p>
-                  <p className="mt-0.5 text-xs text-indigo-200/50">{form.available ? "Available" : "Offline"}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">{t("Available to Help")}</p>
+                  <p className="mt-0.5 text-xs text-indigo-200/50">{form.available ? t("Available") : t("Offline")}</p>
                 </div>
                 <button
                   type="button"
@@ -374,14 +376,14 @@ export default function ProfileClient() {
             <CardHeader className="border-b border-zinc-800/50 pb-3">
               <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
                 <Stethoscope size={16} className="text-indigo-400" />
-                Medical Details
+                {t("Medical Details")}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <textarea
                 value={form.medicalDetails}
                 onChange={(event) => setForm((current) => ({ ...current, medicalDetails: event.target.value }))}
-                placeholder="Allergies, medications, conditions, emergency notes..."
+                placeholder={t("Allergies, medications, conditions, emergency notes...")}
                 rows={4}
                 className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none"
               />
@@ -392,7 +394,7 @@ export default function ProfileClient() {
             <div className="flex flex-wrap gap-2">
               {form.skills.map((skill) => (
                 <Badge key={skill} variant="outline" className="border-indigo-500/30 bg-indigo-950/20 font-medium tracking-wide text-indigo-300">
-                  {skill}
+                  {t(skill)}
                 </Badge>
               ))}
             </div>
@@ -400,7 +402,7 @@ export default function ProfileClient() {
 
           <Button type="submit" disabled={saving} className="h-12 w-full rounded-xl bg-indigo-600 font-bold uppercase tracking-widest text-white hover:bg-indigo-500">
             <Save size={16} className="mr-2" />
-            {saving ? "Saving..." : setupMode ? "Save & Go Home" : "Save Profile"}
+            {saving ? t("Saving...") : setupMode ? t("Save & Go Home") : t("Save Profile")}
           </Button>
         </form>
       </main>

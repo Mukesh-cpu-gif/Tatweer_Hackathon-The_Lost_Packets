@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import React, { createContext, useCallback, useContext, useState, useEffect, useMemo } from "react";
 import { translations } from "@/lib/translations";
 
 export type Language = "en" | "ar";
@@ -17,35 +17,48 @@ interface LanguageContextProps {
 const LanguageContext = createContext<LanguageContextProps | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== "undefined") {
+  const [language, setLanguageState] = useState<Language>("en");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const timer = window.setTimeout(() => {
       const saved = localStorage.getItem("aounak-lang") as Language;
-      if (saved === "en" || saved === "ar") return saved;
-      // Default to Arabic if browser is Arabic, otherwise English
-      return navigator.language.startsWith("ar") ? "ar" : "en";
-    }
-    return "en";
-  });
+      if (saved === "en" || saved === "ar") {
+        setLanguageState(saved);
+        return;
+      }
+      setLanguageState(navigator.language.startsWith("ar") ? "ar" : "en");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const dir = useMemo<"ltr" | "rtl">(() => (language === "ar" ? "rtl" : "ltr"), [language]);
   const isAr = useMemo(() => language === "ar", [language]);
 
-  const setLanguage = (lang: Language) => {
+  const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     if (typeof window !== "undefined") {
       localStorage.setItem("aounak-lang", lang);
     }
-  };
+  }, []);
 
-  const toggleLanguage = () => {
-    setLanguage(language === "en" ? "ar" : "en");
-  };
+  const toggleLanguage = useCallback(() => {
+    setLanguageState((current) => {
+      const next = current === "en" ? "ar" : "en";
+      if (typeof window !== "undefined") {
+        localStorage.setItem("aounak-lang", next);
+      }
+      return next;
+    });
+  }, []);
 
-  const t = (key: string): string => {
+  const t = useCallback((key: string): string => {
     const entry = translations[key];
     if (!entry) return key;
     return language === "ar" ? entry.ar : entry.en;
-  };
+  }, [language]);
 
   // Sync html attributes on mount and language changes
   useEffect(() => {
@@ -64,7 +77,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       t,
       isAr,
     }),
-    [language, dir, isAr]
+    [language, setLanguage, dir, toggleLanguage, t, isAr]
   );
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;

@@ -129,7 +129,7 @@ export default function HomePage() {
   const handleAccept = async (incident: Incident) => {
     await acceptIncident(incident.id, {
       uid: user?.uid ?? clientSessionId,
-      name: profile?.name ?? "Community Helper",
+      name: profile?.name ?? t("Community Helper"),
     });
     setDismissedPromptId(incident.id);
   };
@@ -154,11 +154,6 @@ export default function HomePage() {
           <div>
             <h1 className="flex items-center gap-2 bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-2xl font-bold uppercase tracking-wider text-transparent">
               {t("Aounak")}
-              {language === "en" && (
-                <span className="text-lg font-medium tracking-normal text-indigo-200/60" dir="rtl">
-                  عَوْنَك
-                </span>
-              )}
             </h1>
             <p className="mt-0.5 text-xs font-medium uppercase tracking-widest text-indigo-200/50">
               {t("Rapid Response Network")}
@@ -180,7 +175,7 @@ export default function HomePage() {
               onClick={toggleLanguage}
               className="rounded-full border border-zinc-700/50 bg-zinc-900/50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-200/90 shadow-md transition-all duration-300 hover:bg-zinc-800 active:scale-95"
             >
-              {language === "en" ? "عربي 🌐" : "🌐 EN"}
+              {isAr ? "EN 🌐" : "AR 🌐"}
             </button>
           </div>
         </div>
@@ -220,7 +215,7 @@ export default function HomePage() {
               return (
                 <Link
                   key={sos.id}
-                  href={`/sos/report?type=${sos.id}`}
+                  href={`/sos/report?type=${sos.id}&returnTo=/home`}
                   className={`group relative w-full overflow-hidden rounded-2xl p-5 text-center ${style.bg}`}
                 >
                   <div className="relative flex flex-col items-center">
@@ -228,11 +223,6 @@ export default function HomePage() {
                     <div className={`text-sm font-semibold uppercase tracking-wide ${style.text}`}>
                       {language === "ar" ? sos.labelAr : sos.label}
                     </div>
-                    {language === "en" && (
-                      <div className="mt-1 text-xs font-medium text-indigo-200/50" dir="rtl">
-                        {sos.labelAr}
-                      </div>
-                    )}
                   </div>
                 </Link>
               );
@@ -319,14 +309,16 @@ export default function HomePage() {
               setSelectedBlocks([]);
             }}
             className="absolute inset-0 bg-zinc-950/80 backdrop-blur-md"
-            aria-label="Close incident details"
+            aria-label={t("Close incident details")}
           />
           <Card className="relative z-10 max-h-[82vh] w-full max-w-lg overflow-y-auto rounded-2xl border-zinc-800 bg-zinc-900/95 shadow-2xl">
             <CardHeader className="border-b border-zinc-800/60 pb-4">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle className="text-base font-bold uppercase tracking-widest text-zinc-100">
-                    {sosTypes.find((type) => type.id === selectedIncident.type)?.label ?? selectedIncident.type}
+                    {language === "ar"
+                      ? sosTypes.find((type) => type.id === selectedIncident.type)?.labelAr ?? selectedIncident.type
+                      : sosTypes.find((type) => type.id === selectedIncident.type)?.label ?? selectedIncident.type}
                   </CardTitle>
                   <p className="mt-1 font-mono text-xs text-indigo-200/50">ID: {selectedIncident.id}</p>
                 </div>
@@ -347,19 +339,19 @@ export default function HomePage() {
             <CardContent className="space-y-4 pt-4">
               <div className="grid gap-3 text-sm">
                 <div className="flex justify-between gap-4">
-                  <span className="text-zinc-500">Requester</span>
+                  <span className="text-zinc-500">{t("Requester")}</span>
                   <span className="text-right font-semibold text-zinc-200">{selectedIncident.requesterName}</span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-zinc-500">Location</span>
+                  <span className="text-zinc-500">{t("Location")}</span>
                   <span className="font-mono text-xs text-zinc-200">
                     {selectedIncident.location.lat.toFixed(4)}, {selectedIncident.location.lng.toFixed(4)}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-zinc-500">Responders</span>
+                  <span className="text-zinc-500">{t("Responders")}</span>
                   <span className="font-semibold text-zinc-200">
-                    {selectedIncident.responderCounts?.notified ?? 0} notified · {selectedIncident.responderCounts?.enRoute ?? 0} en route
+                    {selectedIncident.responderCounts?.notified ?? 0} {t("notified")} · {selectedIncident.responderCounts?.enRoute ?? 0} {t("en route")}
                   </span>
                 </div>
               </div>
@@ -367,21 +359,21 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-2">
                 {selectedIncident.requiredSkills.map((skill) => (
                   <Badge key={skill} variant="outline" className="border-zinc-700 bg-zinc-950/40 text-zinc-300">
-                    {skill}
+                    {t(skill)}
                   </Badge>
                 ))}
               </div>
 
               <div className="space-y-2 border-t border-zinc-800/70 pt-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Request Details</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t("Request Details")}</p>
                 {selectedBlocks.length === 0 ? (
                   <p className="rounded-xl border border-dashed border-zinc-800 p-3 text-xs text-zinc-500">
-                    No extra details have been added yet.
+                    {t("No extra details have been added yet.")}
                   </p>
                 ) : (
                   selectedBlocks.map((block) => (
                     <div key={block.key} className="rounded-xl border border-zinc-800 bg-zinc-950/35 p-3">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">{block.title}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">{t(block.title)}</p>
                       <p className="mt-1 text-sm leading-relaxed text-zinc-300">{block.summary}</p>
                     </div>
                   ))
@@ -391,7 +383,7 @@ export default function HomePage() {
               {profile && selectedIncident.status === "pending" && (
                 <Button onClick={() => handleAccept(selectedIncident)} className="h-12 w-full rounded-xl bg-indigo-600 font-bold uppercase tracking-widest text-white hover:bg-indigo-500">
                   <Navigation size={16} className={`mr-2 ${isAr ? "rotate-180" : ""}`} />
-                  I Can Help
+                  {t("I Can Help")}
                 </Button>
               )}
             </CardContent>
@@ -405,12 +397,14 @@ export default function HomePage() {
             <CardContent className="space-y-4 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Nearby Match</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">{t("Nearby Match")}</p>
                   <h3 className="mt-1 text-sm font-bold uppercase tracking-wide text-zinc-100">
-                    {sosTypes.find((type) => type.id === helperPrompt.incident.type)?.label}
+                    {language === "ar"
+                      ? sosTypes.find((type) => type.id === helperPrompt.incident.type)?.labelAr
+                      : sosTypes.find((type) => type.id === helperPrompt.incident.type)?.label}
                   </h3>
                   <p className="mt-1 text-xs leading-relaxed text-zinc-400">
-                    Your skills match this incident{Number.isFinite(helperPrompt.distance) ? ` · ${helperPrompt.distance.toFixed(1)} km away` : ""}.
+                    {t("Your skills match this incident")}{Number.isFinite(helperPrompt.distance) ? ` · ${helperPrompt.distance.toFixed(1)} ${t("km away")}` : ""}.
                   </p>
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => setDismissedPromptId(helperPrompt.incident.id)} className="h-8 w-8 rounded-full text-zinc-400 hover:bg-zinc-800 hover:text-white">
@@ -427,10 +421,10 @@ export default function HomePage() {
                   }}
                   className="h-11 rounded-xl border-zinc-700 bg-zinc-950/50 text-xs font-bold uppercase tracking-widest text-zinc-300 hover:bg-zinc-800"
                 >
-                  View Details
+                  {t("View Details")}
                 </Button>
                 <Button type="button" onClick={() => handleAccept(helperPrompt.incident)} className="h-11 rounded-xl bg-emerald-600 text-xs font-bold uppercase tracking-widest text-white hover:bg-emerald-500">
-                  I Can Help
+                  {t("I Can Help")}
                   <ArrowRight size={14} className={`ml-2 ${isAr ? "rotate-180" : ""}`} />
                 </Button>
               </div>

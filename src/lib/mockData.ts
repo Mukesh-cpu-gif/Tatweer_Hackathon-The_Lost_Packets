@@ -376,3 +376,55 @@ export const mockWeatherAlerts: WeatherAlert[] = [
     expiresAt: new Date(MOCK_NOW + 8 * 3600000).toISOString(),
   },
 ];
+
+// ─── Blockades & Hazards ──────────────────────────────────────────
+export interface Blockade {
+  id: string;
+  name: string;
+  type: "sand_dune" | "flood" | "military_zone" | "accident";
+  location: Coordinates;
+  radiusKm: number;
+}
+
+export const mockBlockades: Blockade[] = [
+  {
+    id: "BLK-001",
+    name: "Unstable Dune Collapse",
+    type: "sand_dune",
+    location: { lat: 23.535, lng: 55.478 },
+    radiusKm: 0.35, // 350 meters radius
+  },
+];
+
+// ─── Safe Routes ──────────────────────────────────────────────────
+export interface SafeRoute {
+  id: string;
+  name: string;
+  creatorName: string;
+  path: Coordinates[];
+  difficulty: "easy" | "moderate" | "hard";
+  vehicleRequirements: string;
+  createdAt: string;
+  startPoint: Coordinates;
+  endPoint: Coordinates;
+}
+
+export const mockSafeRoutes: SafeRoute[] = [
+  {
+    id: "SR-001",
+    name: "Al Qua'a Western Dune Pass",
+    creatorName: "Ahmed Al Dhaheri",
+    path: [
+      { lat: 23.55, lng: 55.485 },
+      { lat: 23.545, lng: 55.48 },
+      { lat: 23.54, lng: 55.472 },
+      { lat: 23.53, lng: 55.47 },
+    ],
+    difficulty: "easy",
+    vehicleRequirements: "4x4 & 15 PSI recommended",
+    createdAt: new Date(MOCK_NOW - 2 * 24 * 3600000).toISOString(),
+    startPoint: { lat: 23.55, lng: 55.485 },
+    endPoint: { lat: 23.53, lng: 55.47 },
+  },
+];
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, Popup, useMap, Circle } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -27,6 +27,8 @@ interface InteractiveMapProps {
   end: [number, number];
   responders?: MapResponder[];
   endName?: string;
+  pathPoints?: [number, number][];
+  blockades?: { id: string; name: string; type: string; location: { lat: number; lng: number }; radiusKm: number }[];
 }
 
 const isClient = typeof window !== "undefined";
@@ -70,7 +72,15 @@ function RecenterMap({ bounds }: { bounds: L.LatLngBounds }) {
   return null;
 }
 
-export default function InteractiveMap({ routeType, start, end, responders, endName }: InteractiveMapProps) {
+export default function InteractiveMap({
+  routeType,
+  start,
+  end,
+  responders,
+  endName,
+  pathPoints,
+  blockades,
+}: InteractiveMapProps) {
   // CartoDB Dark Matter tiles matching dark mode stargazing theme
   const tileUrl = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
@@ -80,10 +90,11 @@ export default function InteractiveMap({ routeType, start, end, responders, endN
   ];
 
   // Path coordinates
-  const pathCoordinates: [number, number][] =
+  const pathCoordinates: [number, number][] = pathPoints || (
     routeType === "paved"
       ? [start, [start[0] - 0.05, start[1] + 0.03], end]
-      : [start, end];
+      : [start, end]
+  );
 
   // Map bounds covering user, station, and responders
   const bounds = useMemo(() => {
@@ -116,6 +127,30 @@ export default function InteractiveMap({ routeType, start, end, responders, endN
         <TileLayer url={tileUrl} />
 
         <Polyline positions={pathCoordinates} pathOptions={pathOptions} />
+
+        {/* Blockades Layer */}
+        {blockades?.map((b) => (
+          <Circle
+            key={b.id}
+            center={[b.location.lat, b.location.lng]}
+            radius={b.radiusKm * 1000}
+            pathOptions={{
+              color: "#f87171",
+              fillColor: "#ef4444",
+              fillOpacity: 0.15,
+              weight: 1.5,
+              dashArray: "4 4",
+            }}
+          >
+            <Popup className="custom-popup">
+              <div className="p-1.5 text-zinc-900 text-xs">
+                <p className="font-bold text-red-700 uppercase tracking-wide">⚠️ Active Blockade</p>
+                <p className="font-semibold mt-0.5">{b.name}</p>
+                <p className="text-zinc-500 text-[10px] mt-0.5">Avoidance Radius: {b.radiusKm * 1000}m</p>
+              </div>
+            </Popup>
+          </Circle>
+        ))}
 
         {/* User Marker */}
         {userIcon && (

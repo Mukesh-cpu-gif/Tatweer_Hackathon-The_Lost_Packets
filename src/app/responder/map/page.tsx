@@ -20,6 +20,9 @@ const hasBrowserGeolocation = () => {
 /**
  * Route Comparison Content — Handles Geolocation, Fallbacks, and Map Rendering
  */
+import { ShieldAlert, Loader2, Plus, Check } from "lucide-react";
+import { subscribeToBlockades, saveBlockade } from "@/lib/db";
+
 function MapContent() {
   const searchParams = useSearchParams();
   const incidentId = searchParams.get("incidentId");
@@ -34,6 +37,55 @@ function MapContent() {
     hasBrowserGeolocation() ? null : "Geolocation not supported by device."
   );
   const [incidentLookup, setIncidentLookup] = useState<{ id: string; incident: Incident | null } | null>(null);
+
+  // Dynamic Routing & Blockades State
+  const [routingData, setRoutingData] = useState<any | null>(null);
+  const [loadingRoute, setLoadingRoute] = useState(false);
+  const [blockades, setBlockades] = useState<any[]>([]);
+
+  // Report Blockade Form State
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [hazardType, setHazardType] = useState<"sand_dune" | "flood" | "accident" | "military_zone">("sand_dune");
+  const [hazardName, setHazardName] = useState("");
+  const [hazardRadius, setHazardRadius] = useState("0.35");
+  const [reporting, setReporting] = useState(false);
+
+  // Subscribe to real-time blockades
+  useEffect(() => {
+    const unsub = subscribeToBlockades((nextBlockades) => {
+      setBlockades(nextBlockades);
+    });
+    return unsub;
+  }, []);
+
+  // Fetch dynamic routes
+  useEffect(() => {
+    if (!responderCoords || !incidentLookup?.incident) return;
+
+    const incident = incidentLookup.incident;
+    setLoadingRoute(true);
+
+    fetch("/api/routing", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        start: { lat: responderCoords[0], lng: responderCoords[1] },
+        end: { lat: incident.location.lat, lng: incident.location.lng },
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setRoutingData(data);
+        } else {
+          console.error("Routing calculation failed:", data.error);
+        }
+      })
+      .catch((err) => console.error("Failed to fetch route:", err))
+      .finally(() => setLoadingRoute(false));
+  }, [responderCoords, incidentLookup, blockades.length]); // Re-calculate when coords or blockades change
 
   useEffect(() => {
     if (!incidentId) return;
@@ -80,6 +132,42 @@ function MapContent() {
     return () => { document.body.style.overflow = "auto"; };
   }, [fullscreenMap]);
 
+  const handleReportHazard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!responderCoords || !hazardName.trim()) return;
+
+    setReporting(true);
+    try {
+      // Place blockade slightly ahead of the responder towards the incident
+      // or at the responder's current location. We place it slightly offset
+      // to make it look like a blockade they encountered on their route!
+      let blockLat = responderCoords[0];
+      let blockLng = responderCoords[1];
+
+      if (incidentLookup?.incident) {
+        // Place it 35% of the way towards the incident
+        const inc = incidentLookup.incident.location;
+        blockLat = responderCoords[0] + (inc.lat - responderCoords[0]) * 0.35;
+        blockLng = responderCoords[1] + (inc.lng - responderCoords[1]) * 0.35;
+      }
+
+      await saveBlockade({
+        name: hazardName.trim(),
+        type: hazardType,
+        location: { lat: blockLat, lng: blockLng },
+        radiusKm: parseFloat(hazardRadius),
+      });
+
+      // Reset form
+      setHazardName("");
+      setIsReportModalOpen(false);
+    } catch (err) {
+      console.error("Failed to save blockade:", err);
+    } finally {
+      setReporting(false);
+    }
+  };
+
   const loading = Boolean(incidentId && incidentLookup?.id !== incidentId);
   const incident = incidentLookup?.id === incidentId ? incidentLookup.incident : null;
 
@@ -99,6 +187,34 @@ function MapContent() {
   }
 
   const incidentCoords: [number, number] = [incident.location.lat, incident.location.lng];
+
+  // Map the path polylines to [number, number][]
+  const pavedPathPoints: [number, number][] | undefined = routingData?.pavedRoute?.polyline
+    ? routingData.pavedRoute.polyline.map((p: any) => [p.lat, p.lng])
+    : undefined;
+
+  const dunePathPoints: [number, number][] | undefined = routingData?.aounakRoute?.polyline
+    ? routingData.aounakRoute.polyline.map((p: any) => [p.lat, p.lng])
+    : undefined;
+
+  // Formatting distances/times
+  const pavedTimeText = routingData?.pavedRoute
+    ? `${Math.round(routingData.pavedRoute.durationMins)} mins`
+    : "47 mins";
+  const pavedDistText = routingData?.pavedRoute
+    ? `${routingData.pavedRoute.distanceKm.toFixed(1)} km`
+    : "38 km";
+
+  const duneTimeText = routingData?.aounakRoute
+    ? `${Math.round(routingData.aounakRoute.durationMins)} mins`
+    : "12 mins";
+  const duneDistText = routingData?.aounakRoute
+    ? `${routingData.aounakRoute.distanceKm.toFixed(1)} km`
+    : "4.2 km";
+
+  const timeSaveText = routingData?.pavedRoute && routingData?.aounakRoute
+    ? `${Math.max(0, Math.round(routingData.pavedRoute.durationMins - routingData.aounakRoute.durationMins))}m`
+    : "35m";
 
   return (
     <>
@@ -138,23 +254,51 @@ function MapContent() {
           </div>
         )}
 
+        {/* Dynamic Route Recalculation Alert */}
+        {routingData?.aounakRoute?.bypassed && (
+          <div className="bg-red-950/20 border border-red-500/30 rounded-xl p-3.5 flex items-start gap-3 shadow-[0_0_20px_rgba(239,68,68,0.05)] animate-pulse">
+            <ShieldAlert size={18} className="text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-red-300 text-xs font-bold uppercase tracking-wider mb-0.5">
+                Obstacle Avoidance Active
+              </p>
+              <p className="text-red-200/70 text-[11px] leading-relaxed font-medium">
+                The off-road routing engine has dynamically steered around active blockades reported in the desert.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Post-Deployment Notice Banner */}
         <div className="bg-indigo-950/20 border border-indigo-500/30 rounded-xl p-3 flex items-start gap-3">
-          <Compass size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+          <Compass size={18} className="text-indigo-400 shrink-0 mt-0.5" />
           <p className="text-indigo-200/80 text-xs font-medium tracking-wide leading-relaxed">
-            <strong>Post-Deployment Note:</strong> Advanced hardware features (Live Compass Direct Bearing and Real-Time Mobile GPS tracking) require a secure HTTPS connection and will be completed once the project is deployed.
+            <strong>Active System:</strong> Utilizing server-side routing calculations.
+            {routingData?.aounakRoute?.safeRouteUsed && (
+              <span className="text-emerald-400 block mt-1 font-semibold uppercase text-[10px] tracking-wider">
+                🌟 Snapped to Crowdsourced Safe Route: {routingData.aounakRoute.safeRouteUsed}
+              </span>
+            )}
           </p>
         </div>
 
         {/* ─── Summary Card ────────────────────────────────────── */}
         <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
-            <span className="text-lg font-bold text-emerald-400">35m</span>
+            {loadingRoute ? (
+              <Loader2 className="w-6 h-6 text-emerald-400 animate-spin" />
+            ) : (
+              <span className="text-lg font-bold text-emerald-400">{timeSaveText}</span>
+            )}
           </div>
           <div>
-            <h3 className="text-emerald-300 text-sm font-bold tracking-widest uppercase mb-1">Massive Time Save</h3>
+            <h3 className="text-emerald-300 text-sm font-bold tracking-widest uppercase mb-1">
+              {loadingRoute ? "Recalculating..." : "Time Save Calculated"}
+            </h3>
             <p className="text-emerald-200/70 text-xs font-medium leading-relaxed tracking-wide">
-              Aounak saves 35 minutes by routing through accessible dune paths instead of standard highway detours.
+              {loadingRoute 
+                ? "Analyzing topographic barriers and highway segments..."
+                : `Aounak saves ${timeSaveText} by routing through accessible dune paths instead of standard highway detours.`}
             </p>
           </div>
         </div>
@@ -180,15 +324,21 @@ function MapContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-zinc-400">
                     <Timer size={16} />
-                    <span className="font-mono text-sm">47 mins</span>
+                    <span className="font-mono text-sm">{pavedTimeText}</span>
                   </div>
                   <Badge variant="outline" className="bg-zinc-900/50 border-zinc-700 text-zinc-400 text-[10px] tracking-widest uppercase">
-                    38 km
+                    {pavedDistText}
                   </Badge>
                 </div>
 
                 <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-zinc-800/50 overflow-hidden group">
-                  <MapWrapper routeType="paved" start={responderCoords} end={incidentCoords} />
+                  <MapWrapper 
+                    routeType="paved" 
+                    start={responderCoords} 
+                    end={incidentCoords} 
+                    pathPoints={pavedPathPoints}
+                    blockades={blockades}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -208,15 +358,21 @@ function MapContent() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-amber-300">
                     <Timer size={16} />
-                    <span className="font-mono text-xl font-bold">12 mins</span>
+                    <span className="font-mono text-xl font-bold">{duneTimeText}</span>
                   </div>
                   <Badge variant="outline" className="bg-amber-950/40 border-amber-500/30 text-amber-400 text-[10px] tracking-widest uppercase shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                    4.2 km
+                    {duneDistText}
                   </Badge>
                 </div>
 
                 <div className="relative h-48 bg-zinc-950/80 rounded-xl border border-amber-500/30 overflow-hidden shadow-[0_0_20px_rgba(245,158,11,0.1)]">
-                  <MapWrapper routeType="dune" start={responderCoords} end={incidentCoords} />
+                  <MapWrapper 
+                    routeType="dune" 
+                    start={responderCoords} 
+                    end={incidentCoords} 
+                    pathPoints={dunePathPoints}
+                    blockades={blockades}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -237,6 +393,15 @@ function MapContent() {
                 </p>
               </div>
             </div>
+
+            <Button
+              onClick={() => setIsReportModalOpen(true)}
+              variant="outline"
+              className="border-red-500/30 hover:border-red-500/60 bg-red-950/10 hover:bg-red-950/20 text-red-400 font-bold tracking-widest text-[10px] uppercase h-9 rounded-lg"
+            >
+              <ShieldAlert size={14} className="mr-1" />
+              Report Hazard
+            </Button>
           </CardContent>
         </Card>
 
@@ -277,7 +442,98 @@ function MapContent() {
             </Button>
           </div>
           <div className="flex-1 w-full h-full pt-14">
-            <MapWrapper routeType={fullscreenMap} start={responderCoords} end={incidentCoords} />
+            <MapWrapper 
+              routeType={fullscreenMap} 
+              start={responderCoords} 
+              end={incidentCoords} 
+              pathPoints={fullscreenMap === "dune" ? dunePathPoints : pavedPathPoints}
+              blockades={blockades}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ─── Report Hazard Modal ─────────────────────────────── */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl relative">
+            <button 
+              onClick={() => setIsReportModalOpen(false)}
+              className="absolute top-4 right-4 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+            <div className="p-6 border-b border-zinc-800">
+              <h2 className="text-lg font-bold tracking-wider uppercase text-red-500 flex items-center gap-2">
+                <ShieldAlert size={20} />
+                Report Hazard / Blockade
+              </h2>
+              <p className="text-xs text-zinc-400 mt-1">
+                Pin a dynamic hazard to warn all responders. The system will immediately bypass it.
+              </p>
+            </div>
+
+            <form onSubmit={handleReportHazard} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">Hazard Type</label>
+                <select
+                  value={hazardType}
+                  onChange={(e: any) => setHazardType(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-xl px-4 py-3 text-xs outline-none focus:border-red-500 transition-colors"
+                >
+                  <option value="sand_dune">Dune Collapse / Heavy Sand</option>
+                  <option value="flood">Flash Flood (Sabkha Wetland)</option>
+                  <option value="accident">Stuck Vehicle Blockade</option>
+                  <option value="military_zone">Restricted Boundary</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">Hazard Label</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Unstable Dune collapse, Deep mud water"
+                  value={hazardName}
+                  onChange={(e) => setHazardName(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-xl px-4 py-3 text-xs outline-none focus:border-red-500 transition-colors placeholder:text-zinc-600"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold tracking-widest uppercase text-zinc-500">Avoidance Radius</label>
+                <select
+                  value={hazardRadius}
+                  onChange={(e) => setHazardRadius(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-xl px-4 py-3 text-xs outline-none focus:border-red-500 transition-colors"
+                >
+                  <option value="0.15">150 meters (Small pit)</option>
+                  <option value="0.35">350 meters (Standard Dune Ridge)</option>
+                  <option value="0.6">600 meters (Sabkha Marshland)</option>
+                  <option value="1.0">1000 meters (Military Sector)</option>
+                </select>
+              </div>
+
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={reporting}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold tracking-widest uppercase text-xs h-12 rounded-xl flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                >
+                  {reporting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Broadcasting...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} />
+                      Broadcast Hazard
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

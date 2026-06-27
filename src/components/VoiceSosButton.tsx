@@ -14,6 +14,8 @@ export default function VoiceSosButton({ onTranscriptionComplete, className }: V
   const [supported, setSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+  const silenceTimeoutRef = useRef<any>(null);
+  const latestTranscriptRef = useRef<string>("");
 
   useEffect(() => {
     const SpeechRecognition =
@@ -24,38 +26,75 @@ export default function VoiceSosButton({ onTranscriptionComplete, className }: V
     if (SpeechRecognition) {
       setSupported(true);
       const rec = new SpeechRecognition();
-      rec.continuous = false;
-      rec.interimResults = false;
+      rec.continuous = true;
+      rec.interimResults = true;
       rec.lang = "en-US";
 
       rec.onstart = () => {
         setIsListening(true);
         setError(null);
+        latestTranscriptRef.current = "";
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+        }
       };
 
       rec.onend = () => {
         setIsListening(false);
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+        }
+        
+        // Output the final accumulated transcription on stop
+        const resultText = latestTranscriptRef.current.trim();
+        if (resultText.length > 0) {
+          onTranscriptionComplete(resultText);
+        }
       };
 
       rec.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
         if (event.error === "not-allowed") {
           setError("Microphone permission denied.");
+        } else if (event.error === "network") {
+          setError("Voice capture failed: Network connection required.");
         } else {
           setError(`Voice capture failed: ${event.error}`);
         }
         setIsListening(false);
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
+        }
       };
 
       rec.onresult = (event: any) => {
-        const text = event.results[0][0].transcript;
-        if (text && text.trim().length > 0) {
-          onTranscriptionComplete(text);
+        // Clear any active silence timer
+        if (silenceTimeoutRef.current) {
+          clearTimeout(silenceTimeoutRef.current);
         }
+
+        // Reconstruct the full text from the accumulated result chunks
+        let accumulated = "";
+        for (let i = 0; i < event.results.length; ++i) {
+          accumulated += event.results[i][0].transcript + " ";
+        }
+        latestTranscriptRef.current = accumulated;
+
+        // Auto-stop if user remains silent for 3 seconds
+        silenceTimeoutRef.current = setTimeout(() => {
+          console.log("Silence limit (3s) reached. Stopping recording.");
+          rec.stop();
+        }, 3000);
       };
 
       recognitionRef.current = rec;
     }
+
+    return () => {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
+    };
   }, [onTranscriptionComplete]);
 
   const toggleListening = () => {
@@ -65,6 +104,9 @@ export default function VoiceSosButton({ onTranscriptionComplete, className }: V
     }
 
     if (isListening) {
+      if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+      }
       recognitionRef.current.stop();
     } else {
       try {

@@ -29,6 +29,8 @@ export default function SOSChooserPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [parsedDraft, setParsedDraft] = useState<any | null>(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [manualText, setManualText] = useState("");
 
   const handleVoiceTranscript = (text: string) => {
     setVoiceText(text);
@@ -98,23 +100,55 @@ export default function SOSChooserPage() {
         {/* ─── Voice Command AI Card ─────────────────────────── */}
         <Card className="border border-indigo-500/30 bg-indigo-950/20 shadow-[0_0_30px_rgba(99,102,241,0.08)] backdrop-blur-md rounded-2xl overflow-hidden relative group">
           <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent pointer-events-none" />
-          <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-5 relative z-10">
-            <div className="flex items-center gap-4 text-left">
-              <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shrink-0">
-                <Mic className="h-6 w-6 text-indigo-400" />
+          <CardContent className="p-5 flex flex-col items-stretch gap-4 relative z-10">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
+              <div className="flex items-center gap-4 text-left">
+                <div className="p-3.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shrink-0">
+                  <Mic className="h-6 w-6 text-indigo-400" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-300">Voice Assistant SOS</h3>
+                  <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed max-w-sm">
+                    Tap microphone to state your emergency hands-free. Specify name, phone, crisis description, and location details.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-300">Voice Assistant SOS</h3>
-                <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed max-w-sm">
-                  Tap microphone to state your emergency hands-free. Specify name, phone, crisis description, and location details.
-                </p>
-              </div>
+              
+              <VoiceSosButton 
+                onTranscriptionComplete={handleVoiceTranscript}
+                className="shrink-0"
+              />
             </div>
-            
-            <VoiceSosButton 
-              onTranscriptionComplete={handleVoiceTranscript}
-              className="shrink-0"
-            />
+
+            {/* Demo / Offline Text Fallback */}
+            <div className="pt-3 border-t border-zinc-800 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setShowTextInput(!showTextInput)}
+                className="text-[10px] text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-widest text-left w-fit self-start transition-colors"
+              >
+                {showTextInput ? "Hide text entry" : "⌨️ Or type your emergency text command (Demo Fallback)"}
+              </button>
+
+              {showTextInput && (
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="e.g. need help snake bit me, name is aasif, phone 052404918..."
+                    value={manualText}
+                    onChange={(e) => setManualText(e.target.value)}
+                    className="flex-grow bg-zinc-950 border border-zinc-800 text-zinc-300 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-500 transition-colors placeholder:text-zinc-700"
+                  />
+                  <Button
+                    onClick={() => handleVoiceTranscript(manualText)}
+                    disabled={!manualText.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-widest px-4 h-10 rounded-xl shrink-0 shadow-md"
+                  >
+                    Analyze
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 

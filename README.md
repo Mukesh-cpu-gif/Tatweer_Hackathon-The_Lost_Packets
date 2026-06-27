@@ -12,11 +12,11 @@ Aounak is a mobile-first emergency response PWA for rural and desert communities
 
 **Core mission:** Shorten the coordination gap between an urgent need and the arrival of the right nearby help.
 
-> Live demo: _Add deployment URL before final submission_
->
-> Demo video: _Add video URL before final submission_
->
-> Team: The Lost Packets
+## 🔗 Project Links
+
+🌐 **Live Demo:** https://aounak.vercel.app
+
+🎥 **Demo Video:** https://youtu.be/eKDrTjFcbs8
 
 ## Problem
 
@@ -43,22 +43,22 @@ Aounak turns a stressful request into a structured emergency signal:
 
 ## Core Features
 
-| Feature | What it does | Why it matters |
-|---|---|---|
-| Visual SOS flow | Lets users choose a relevant emergency type quickly | Reduces typing during stress |
-| GPS location capture | Attaches coordinates to SOS requests | Makes desert/farm locations easier to find |
-| Live incident summary | Creates an incident record with status, skills, and responder counts | Gives responders a shared source of truth |
-| Optional request blocks | Adds contact, crisis, medical, livestock, fuel, or vehicle details after the SOS | Lets responders receive more detail without delaying the first alert |
-| Responder dashboard | Shows active community requests and accept actions | Helps volunteers see who needs help |
-| Skill-aware matching | Uses helper skills and distance calculations where profiles are available | Sends the right type of help, not just anyone |
-| Offline SMS fallback | Opens an SMS with emergency details and a map link | Useful when data is weak but SMS may work |
-| IndexedDB queue | Stores offline SOS attempts for later sync | Gives weak-connectivity flows a recovery path |
-| PWA support | Includes manifest, app icons, shortcuts, splash art, and service worker caching | Makes the web app feel closer to a mobile tool |
-| History | Shows created/helped activity for signed-in or local sessions | Supports accountability and review |
-| Profile readiness | Tracks contact, vehicle, skills, availability, medical notes, and GPS | Helps responders be more useful and trustworthy |
-| English/Arabic UI | Provides app-wide language switching and RTL direction | Fits local community use better than English-only UX |
-| On-device animal/threat assistant | Prototype TensorFlow image/symptom assistant for venomous-threat details | Adds richer context for responders without relying on a cloud AI call |
-| Route comparison prototype | Shows a Leaflet-based paved/off-road route comparison for an incident | Demonstrates how local route knowledge could improve dispatch decisions |
+| Feature                           | What it does                                                                     | Why it matters                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Visual SOS flow                   | Lets users choose a relevant emergency type quickly                              | Reduces typing during stress                                            |
+| GPS location capture              | Attaches coordinates to SOS requests                                             | Makes desert/farm locations easier to find                              |
+| Live incident summary             | Creates an incident record with status, skills, and responder counts             | Gives responders a shared source of truth                               |
+| Optional request blocks           | Adds contact, crisis, medical, livestock, fuel, or vehicle details after the SOS | Lets responders receive more detail without delaying the first alert    |
+| Responder dashboard               | Shows active community requests and accept actions                               | Helps volunteers see who needs help                                     |
+| Skill-aware matching              | Uses helper skills and distance calculations where profiles are available        | Sends the right type of help, not just anyone                           |
+| Offline SMS fallback              | Opens an SMS with emergency details and a map link                               | Useful when data is weak but SMS may work                               |
+| IndexedDB queue                   | Stores offline SOS attempts for later sync                                       | Gives weak-connectivity flows a recovery path                           |
+| PWA support                       | Includes manifest, app icons, shortcuts, splash art, and service worker caching  | Makes the web app feel closer to a mobile tool                          |
+| History                           | Shows created/helped activity for signed-in or local sessions                    | Supports accountability and review                                      |
+| Profile readiness                 | Tracks contact, vehicle, skills, availability, medical notes, and GPS            | Helps responders be more useful and trustworthy                         |
+| English/Arabic UI                 | Provides app-wide language switching and RTL direction                           | Fits local community use better than English-only UX                    |
+| On-device animal/threat assistant | Prototype TensorFlow image/symptom assistant for venomous-threat details         | Adds richer context for responders without relying on a cloud AI call   |
+| Route comparison prototype        | Shows a Leaflet-based paved/off-road route comparison for an incident            | Demonstrates how local route knowledge could improve dispatch decisions |
 
 ## Demo Flow
 
@@ -72,33 +72,6 @@ Aounak turns a stressful request into a structured emergency signal:
 8. Show the offline SMS fallback as the low-data backup path.
 9. Open profile/history to show readiness and activity tracking.
 
-## Screenshots
-
-Screenshot placeholders are tracked in [docs/EVIDENCE.md](docs/EVIDENCE.md). Before final submission, add fresh mobile screenshots to `docs/screenshots/` after the deployed app and Firebase demo accounts are ready.
-
-Current recommended screenshot set:
-
-| Screen | Target file |
-|---|---|
-| Welcome | `docs/screenshots/01-welcome.png` |
-| SOS selection | `docs/screenshots/04-sos-selection.png` |
-| SOS report | `docs/screenshots/05-sos-report-vehicle.png` |
-| Home dashboard | `docs/screenshots/06-home-dashboard.png` |
-| Profile readiness | `docs/screenshots/07-profile-readiness.png` |
-| Responder map | `docs/screenshots/09-map-route-prototype.png` |
-
-## Judging Criteria Mapping
-
-| Tatweer criterion | How Aounak addresses it | Evidence |
-|---|---|---|
-| Impact | Targets urgent help in rural/desert settings where distance and unclear location delay response | Demo flow, screenshots, problem section |
-| Relevance | Directly addresses Challenge 2 by connecting residents with nearby appropriate help | Challenge section, SOS and responder flows |
-| Feasibility | Uses common web/PWA/Firebase infrastructure and smartphone APIs | [Architecture](docs/ARCHITECTURE.md), [Feasibility](docs/FEASIBILITY.md) |
-| Readiness | Working MVP paths for SOS, profile, incident feed, responder view, map/history/fallback where accessible | [Evidence](docs/EVIDENCE.md), [Testing](docs/TESTING.md) |
-| Scalability | Skill tags, reusable data model, configurable emergency categories, and Firebase-backed sync can extend to other communities | Scalability section, architecture docs |
-| Evidence | Specific claims are linked to screenshots, commands, or manual test steps | [Evidence](docs/EVIDENCE.md) |
-| Documentation | Setup, env, architecture, testing, limitations, deployment, and demo script are included | `README.md` plus `docs/` |
-
 ## Tech Stack
 
 - **App:** Next.js App Router, React, TypeScript
@@ -110,24 +83,6 @@ Current recommended screenshot set:
 - **AI prototype:** TensorFlow.js with local model assets in `public/model`
 - **Hosting target:** Vercel or Firebase Hosting
 
-## Architecture Summary
-
-Aounak is a client-heavy PWA with Firebase-backed sync where environment variables are configured. Guest emergency creation is intentionally supported for minimal SOS summaries, while private profile data is protected by Firestore rules.
-
-Key routes:
-
-- `/` welcome and entry actions
-- `/login` and `/register` authentication
-- `/home` requester dashboard and recent activity
-- `/sos` emergency type selection
-- `/sos/report` live SOS, optional details, offline SMS, and first-aid guidance
-- `/profile` contact, vehicle, skills, availability, medical notes, and GPS readiness
-- `/history` created/helped incident activity
-- `/responder` responder profile and active incident feed
-- `/responder/map` route comparison prototype
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the system diagram and data model notes.
-
 ## Run Locally
 
 ```bash
@@ -137,31 +92,6 @@ npm run dev
 ```
 
 Then open the local Next.js URL printed by the terminal.
-
-## Environment Variables
-
-`.env.local` is intentionally ignored and must not be committed. The app expects Firebase web config variables:
-
-```bash
-NEXT_PUBLIC_FIREBASE_API_KEY=
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
-NEXT_PUBLIC_FIREBASE_APP_ID=
-```
-
-Firebase client config is not a backend password. Protect app data through Firebase Authentication plus Firestore security rules. Never commit Firebase Admin SDK service accounts, private keys, or real personal emergency data.
-
-## Command Checks
-
-```bash
-npm run lint
-npm run typecheck
-npm run build
-```
-
-See [docs/TESTING.md](docs/TESTING.md) for the latest recorded results.
 
 ## Deployment
 
@@ -194,21 +124,12 @@ The current structure can scale by:
 - Browser GPS accuracy depends on permissions, hardware, and signal.
 - Responder identity and skills need verification before real use.
 - The animal/threat assistant is assistive only and not medical authority.
-- Offline behavior needs production HTTPS and real-device field testing.
-
-## Team
-
-**The Lost Packets** - Tatweer Hackathon 2026.
 
 ## More Docs
 
 - [Evidence and Validation](docs/EVIDENCE.md)
-- [Testing](docs/TESTING.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Feasibility](docs/FEASIBILITY.md)
 - [Limitations](docs/LIMITATIONS.md)
-- [Demo Script](docs/DEMO_SCRIPT.md)
-- [Submission Checklist](docs/SUBMISSION_CHECKLIST.md)
 - [Deployment](docs/DEPLOYMENT.md)
 - [Security](docs/SECURITY.md)
-- [UI Polish Notes](docs/UI_POLISH.md)

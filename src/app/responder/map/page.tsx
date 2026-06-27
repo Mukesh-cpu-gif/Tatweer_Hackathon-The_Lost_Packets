@@ -114,7 +114,32 @@ function MapContent() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setResponderCoords([position.coords.latitude, position.coords.longitude]);
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        
+        // Al Qua'a center
+        const alQuaaCenterLat = 23.543;
+        const alQuaaCenterLng = 55.487;
+        
+        // Haversine formula to compute distance
+        const R = 6371; // Earth radius in km
+        const dLat = ((alQuaaCenterLat - userLat) * Math.PI) / 180;
+        const dLng = ((alQuaaCenterLng - userLng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((userLat * Math.PI) / 180) *
+            Math.cos((alQuaaCenterLat * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        if (distance > 30) {
+          console.log("GPS is far from Al Qua'a. Using local Al Qua'a responder coordinate for the rescue demo.");
+          setResponderCoords(fallbackResponderCoords);
+        } else {
+          setResponderCoords([userLat, userLng]);
+        }
       },
       (error) => {
         console.error("Geo error:", error);

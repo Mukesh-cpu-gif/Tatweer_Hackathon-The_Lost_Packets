@@ -51,11 +51,27 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
 
   // ─── 2. Extract Phone Number ───
   let phone = "";
-  // Match sequences of 7 to 12 digits (e.g. 052404918)
-  const phoneRegex = /\b\d{7,12}\b/;
-  const phoneMatch = normalized.match(phoneRegex);
-  if (phoneMatch) {
-    phone = phoneMatch[0];
+  // Matches digit sequences that can be separated by spaces or dashes (e.g. 052 1404918 or 052-140-4918)
+  const phoneGroupRegex = /\b\d{2,4}(?:[\s-]?\d{2,6}){1,4}\b/g;
+  const phoneMatches = normalized.match(phoneGroupRegex);
+  if (phoneMatches) {
+    for (const match of phoneMatches) {
+      const cleaned = match.replace(/[\s-]/g, "");
+      // Valid phone numbers are between 7 and 12 digits
+      if (cleaned.length >= 7 && cleaned.length <= 12) {
+        phone = cleaned;
+        break;
+      }
+    }
+  }
+
+  // Fallback to strict digits if grouping search failed
+  if (!phone) {
+    const phoneRegex = /\b\d{7,12}\b/;
+    const phoneMatch = normalized.match(phoneRegex);
+    if (phoneMatch) {
+      phone = phoneMatch[0];
+    }
   }
 
   // ─── 3. Extract Name ───

@@ -20,7 +20,7 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
     venomous_bite: ["snake", "scorpion", "bite", "bit", "stung", "sting", "venom", "poison", "fang", "viper"],
     out_of_fuel: ["fuel", "gas", "petrol", "diesel", "empty", "refuel"],
     vehicle_stuck: ["stuck", "sand", "dune", "deflation", "winch", "recovery", "tractor", "tire", "tyre", "mud"],
-    sick_livestock: ["camel", "livestock", "sheep", "goat", "animal", "cow", "vet", "camel", "herd"],
+    sick_livestock: ["camel", "livestock", "sheep", "goat", "animal", "cow", "vet", "camel", "herd", "horse", "falcon", "parrot", "cat", "dog", "veterinarian", "lamb", "foal", "calf", "chick", "kitten", "puppy"],
     water_emergency: ["water", "pump", " thirsty", "leak", "dehydrate", "no water"],
     medical: ["medical", "doctor", "pain", "bleeding", "chest", "breath", "heart", "injury", "sick"],
   };
@@ -45,7 +45,20 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
     type = "out_of_fuel";
   } else if (normalized.includes("stuck") || normalized.includes("sand")) {
     type = "vehicle_stuck";
-  } else if (normalized.includes("camel") || normalized.includes("livestock") || normalized.includes("camel")) {
+  } else if (
+    normalized.includes("camel") ||
+    normalized.includes("livestock") ||
+    normalized.includes("sheep") ||
+    normalized.includes("goat") ||
+    normalized.includes("cow") ||
+    normalized.includes("horse") ||
+    normalized.includes("falcon") ||
+    normalized.includes("parrot") ||
+    normalized.includes("cat") ||
+    normalized.includes("dog") ||
+    normalized.includes("vet") ||
+    normalized.includes("veterinarian")
+  ) {
     type = "sick_livestock";
   }
 
@@ -183,6 +196,20 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
     if (normalized.includes("dune") || normalized.includes("high sand")) specifics = "Stuck in high dunes";
     else if (normalized.includes("mud") || normalized.includes("sabkha")) specifics = "Stuck in sabkha wet sand";
     else specifics = "Standard recovery required";
+  } else if (type === "sick_livestock") {
+    const animalsList = ["camel", "goat", "sheep", "cow", "horse", "falcon", "parrot", "cat", "dog"];
+    let detectedAnimal = "";
+    for (const animal of animalsList) {
+      if (normalized.includes(animal)) {
+        detectedAnimal = animal;
+        break;
+      }
+    }
+    if (detectedAnimal) {
+      specifics = `Animal profile: ${detectedAnimal.charAt(0).toUpperCase() + detectedAnimal.slice(1)}`;
+    } else {
+      specifics = "Animal profile: Livestock";
+    }
   }
 
   return {

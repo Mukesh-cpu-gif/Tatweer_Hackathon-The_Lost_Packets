@@ -220,6 +220,37 @@ export default function SOSClient() {
   const handleStuckChange = useCallback((info: string) => setStuckVehicleInfo(info), []);
   const handleLivestockChange = useCallback((info: string) => setLivestockInfo(info), []);
 
+  const [voiceAutofilled, setVoiceAutofilled] = useState(false);
+
+  // Load Voice SOS draft if present in session storage
+  useEffect(() => {
+    if (typeof window === "undefined" || !typeId) return;
+
+    const rawDraft = window.sessionStorage.getItem("aounak-voice-sos-draft");
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft);
+      if (draft.type === typeId) {
+        if (draft.name) setContactName(draft.name);
+        if (draft.phone) setContactPhone(draft.phone);
+        if (draft.passengers) setPeopleCount(draft.passengers);
+        if (draft.notes) setCustomNotes(draft.notes);
+        
+        if (typeId === "venomous_bite" && draft.specifics) setVenomousThreatInfo(draft.specifics);
+        else if (typeId === "out_of_fuel" && draft.specifics) setFuelRequestInfo(draft.specifics);
+        else if (typeId === "vehicle_stuck" && draft.specifics) setStuckVehicleInfo(draft.specifics);
+        else if (typeId === "sick_livestock" && draft.specifics) setLivestockInfo(draft.specifics);
+
+        setVoiceAutofilled(true);
+        // Clear draft so it doesn't trigger on subsequent loads
+        window.sessionStorage.removeItem("aounak-voice-sos-draft");
+      }
+    } catch (e) {
+      console.error("Failed to load voice draft", e);
+    }
+  }, [typeId]);
+
   useEffect(() => {
     if (!isFirebaseConfigured) return;
     const unsubscribe = onAuthStateChanged(auth, setUser);
@@ -451,6 +482,16 @@ export default function SOSClient() {
       </nav>
 
       <main className="relative z-10 mx-auto max-w-2xl space-y-6 px-5">
+        {voiceAutofilled && (
+          <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3.5 flex items-center gap-3 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm">
+              ✨
+            </span>
+            <p className="text-xs text-indigo-200/90 font-medium leading-relaxed">
+              <strong>Voice Assistant:</strong> Form details successfully populated from your voice transcript.
+            </p>
+          </div>
+        )}
         <div className="relative space-y-3 text-center">
           <div className="absolute inset-0 -z-10 mx-auto h-32 w-32 rounded-full bg-rose-500/10 blur-[50px]" />
           <div className={`mb-2 inline-flex rounded-3xl border p-5 shadow-[0_0_30px_rgba(244,63,94,0.15)] ${style.bg} ${style.border}`}>

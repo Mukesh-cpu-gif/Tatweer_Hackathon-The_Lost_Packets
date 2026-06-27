@@ -1,0 +1,180 @@
+import { SOSCategory } from "./mockData";
+
+export interface ParsedVoiceEmergency {
+  type: SOSCategory;
+  name: string;
+  phone: string;
+  passengers: number;
+  notes: string;
+  specifics: string;
+}
+
+// Smart offline-first keyword classifier and entity extractor
+export function parseVoiceInput(text: string): ParsedVoiceEmergency {
+  const normalized = text.toLowerCase().trim();
+
+  // ─── 1. Classify Crisis Type ───
+  let type: SOSCategory = "medical"; // Default fallback
+
+  const keywords: Record<SOSCategory, string[]> = {
+    venomous_bite: ["snake", "scorpion", "bite", "bit", "stung", "sting", "venom", "poison", "fang", "viper"],
+    out_of_fuel: ["fuel", "gas", "petrol", "diesel", "empty", "refuel"],
+    vehicle_stuck: ["stuck", "sand", "dune", "deflation", "winch", "recovery", "tractor", "tire", "tyre", "mud"],
+    sick_livestock: ["camel", "livestock", "sheep", "goat", "animal", "cow", "vet", "camel", "herd"],
+    water_emergency: ["water", "pump", " thirsty", "leak", "dehydrate", "no water"],
+    medical: ["medical", "doctor", "pain", "bleeding", "chest", "breath", "heart", "injury", "sick"],
+  };
+
+  // Find category with most matching keywords
+  let maxMatches = 0;
+  for (const cat of Object.keys(keywords) as SOSCategory[]) {
+    let matches = 0;
+    for (const kw of keywords[cat]) {
+      if (normalized.includes(kw)) matches++;
+    }
+    if (matches > maxMatches) {
+      maxMatches = matches;
+      type = cat;
+    }
+  }
+
+  // Double check direct matches for high priority
+  if (normalized.includes("snake") || normalized.includes("viper") || normalized.includes("scorpion")) {
+    type = "venomous_bite";
+  } else if (normalized.includes("fuel") || normalized.includes("petrol") || normalized.includes("gasoline")) {
+    type = "out_of_fuel";
+  } else if (normalized.includes("stuck") || normalized.includes("sand")) {
+    type = "vehicle_stuck";
+  } else if (normalized.includes("camel") || normalized.includes("livestock") || normalized.includes("camel")) {
+    type = "sick_livestock";
+  }
+
+  // ─── 2. Extract Phone Number ───
+  let phone = "";
+  // Match sequences of 7 to 12 digits (e.g. 052404918)
+  const phoneRegex = /\b\d{7,12}\b/;
+  const phoneMatch = normalized.match(phoneRegex);
+  if (phoneMatch) {
+    phone = phoneMatch[0];
+  }
+
+  // ─── 3. Extract Name ───
+  let name = "";
+  // Check common patterns
+  const namePatterns = [
+    /name\s+is\s+([a-zA-Z\s]+?)(?:,|\.|$|\band\b|\bphone\b|\bnumber\b)/i,
+    /name's\s+([a-zA-Z\s]+?)(?:,|\.|$|\band\b|\bphone\b)/i,
+    /called\s+([a-zA-Z\s]+?)(?:,|\.|$|\band\b|\bphone\b)/i,
+    /i\s+am\s+([a-zA-Z\s]+?)(?:,|\.|$|\band\b|\bphone\b)/i,
+    /im\s+([a-zA-Z\s]+?)(?:,|\.|$|\band\b|\bphone\b)/i,
+  ];
+
+  for (const pattern of namePatterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      const parsedName = match[1].trim();
+      // Keep it short (max 2 words) to avoid catching surrounding text
+      if (parsedName.split(/\s+/).length <= 2) {
+        name = parsedName;
+        break;
+      }
+    }
+  }
+
+  // ─── 4. Extract Passengers / Alone ───
+  let passengers = 1;
+  if (normalized.includes("alone") || normalized.includes("myself") || normalized.includes("i am by myself")) {
+    passengers = 1;
+  } else {
+    const peoplePatterns = [
+      /we\s+are\s+(\d+)\s+(?:people|passengers|person|adults|kids)/i,
+      /(\d+)\s+people/i,
+      /(\d+)\s+passengers/i,
+      /(\d+)\s+of\s+us/i,
+    ];
+    for (const pattern of peoplePatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        passengers = parseInt(match[1]) || 1;
+        break;
+      }
+    }
+  }
+
+  // ─── 5. Extract Notes & Specific Details ───
+  // Notes contain the crisis conditions (symptoms, severity, etc.)
+  let notesParts: string[] = [];
+  
+  if (normalized.includes("severe pain")) notesParts.push("Severe pain reported");
+  if (normalized.includes("fang marks") || normalized.includes("fangs")) notesParts.push("2 fang marks detected");
+  if (normalized.includes("foot") || normalized.includes("leg")) {
+    const footMatch = text.match(/\b(left|right)?\s*(foot|leg|toe)\b/i);
+    notesParts.push(`Bite location: ${footMatch ? footMatch[0].trim() : "leg/foot"}`);
+  }
+  if (normalized.includes("headache") || normalized.includes("dizzy")) notesParts.push("Symptom: Dizziness/Headache");
+
+  // General fallback for notes: collect sentences that don't talk about phone or name
+  const sentences = text.split(/[.,]/);
+  const generalNotes = sentences
+    .map(s => s.trim())
+    .filter(s => {
+      const sl = s.toLowerCase();
+      return (
+        sl.length > 5 &&
+        !sl.includes("name is") &&
+        !sl.includes("my name") &&
+        !sl.includes("phone number") &&
+        !sl.match(/\b\d{7,12}\b/)
+      );
+    })
+    .join(". ");
+
+  let notes = notesParts.length ? notesParts.join(". ") : generalNotes;
+  if (!notes) {
+    notes = text; // Fallback to raw text
+  }
+
+  // ─── 6. Extract Specifics (e.g. Snake description or fuel specs) ───
+  let specifics = "";
+  if (type === "venomous_bite") {
+    // Look for snake description
+    const snakeDescPattern = /(?:snake|scorpion)\s+(?:was|is)\s+([a-zA-Z\s]+?)(?:\.|$|,)/i;
+    const match = text.match(snakeDescPattern);
+    if (match && match[1]) {
+      specifics = match[0].trim();
+    } else {
+      // Find color keywords + horns etc.
+      const features = [];
+      const colors = ["yellow", "black", "brown", "grey", "gray", "red", "green"];
+      for (const color of colors) {
+        if (normalized.includes(color)) {
+          features.push(`${color} color`);
+        }
+      }
+      if (normalized.includes("horn")) features.push("horned head structure");
+      if (normalized.includes("alone")) features.push("alone");
+      
+      specifics = features.length 
+        ? `Animal: ${features.join(", ")}` 
+        : "Snake bite reported in desert.";
+    }
+  } else if (type === "out_of_fuel") {
+    // Find fuel type if mentioned
+    if (normalized.includes("diesel")) specifics = "Required fuel: Diesel";
+    else if (normalized.includes("super") || normalized.includes("98") || normalized.includes("95")) specifics = "Required fuel: Octane Petrol";
+    else specifics = "Required fuel: Standard Petrol";
+  } else if (type === "vehicle_stuck") {
+    if (normalized.includes("dune") || normalized.includes("high sand")) specifics = "Stuck in high dunes";
+    else if (normalized.includes("mud") || normalized.includes("sabkha")) specifics = "Stuck in sabkha wet sand";
+    else specifics = "Standard recovery required";
+  }
+
+  return {
+    type,
+    name: name || "Emergency Guest",
+    phone: phone || "0500000000",
+    passengers,
+    notes,
+    specifics,
+  };
+}

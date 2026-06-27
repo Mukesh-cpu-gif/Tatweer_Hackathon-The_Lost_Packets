@@ -14,6 +14,8 @@ interface MapWrapperProps {
   end: [number, number];
   responders?: MapResponder[];
   endName?: string;
+  pathPoints?: [number, number][];
+  blockades?: { id: string; name: string; type: string; location: { lat: number; lng: number }; radiusKm: number }[];
 }
 
 export default function MapWrapper(props: MapWrapperProps) {

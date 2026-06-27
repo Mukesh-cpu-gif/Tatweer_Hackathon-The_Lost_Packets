@@ -28,6 +28,7 @@ import DeflationGuide from "@/components/DeflationGuide";
 import FuelCalculator from "@/components/FuelCalculator";
 import { GlassPanel } from "@/components/GlassPanel";
 import LivestockSelector from "@/components/LivestockSelector";
+import BodyLocationSelector from "@/components/BodyLocationSelector";
 import { StatusPill } from "@/components/StatusPill";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ import { generateSmsDeepLink } from "@/lib/sms";
 import { queueSosRequest, registerSosSync } from "@/lib/storage";
 import { sosTypes } from "@/lib/mockData";
 import type { Incident, Responder } from "@/lib/mockData";
+import type { ParsedVoiceEmergency } from "@/lib/voice-ai";
 import {
   createIncidentSummary,
   getClientSessionId,
@@ -80,6 +82,10 @@ const OfflineAnimalAI = dynamic(() => import("@/components/OfflineAnimalAI"), {
 });
 
 const fallbackCoords = { lat: 23.543, lng: 55.487 };
+
+type VoiceSosDraft = Partial<ParsedVoiceEmergency> & {
+  type?: string;
+};
 
 const readLocalEmergencyProfile = (): { name: string; phone: string; vehicle: string } => {
   if (typeof window === "undefined") return { name: "", phone: "", vehicle: "" };
@@ -246,11 +252,55 @@ export default function SOSClient() {
   const [livestockInfo, setLivestockInfo] = useState("");
   const [waterInfo, setWaterInfo] = useState("");
   const [medicalInfo, setMedicalInfo] = useState("");
+  const [injuryLocation, setInjuryLocation] = useState("");
+  const [venomousBodyPart, setVenomousBodyPart] = useState("");
 
   const handleVenomousChange = useCallback((info: string) => setVenomousThreatInfo(info), []);
   const handleFuelChange = useCallback((info: string) => setFuelRequestInfo(info), []);
   const handleStuckChange = useCallback((info: string) => setStuckVehicleInfo(info), []);
   const handleLivestockChange = useCallback((info: string) => setLivestockInfo(info), []);
+
+  const [voiceAutofilled, setVoiceAutofilled] = useState(false);
+
+  // Load Voice SOS draft if present in session storage
+  useEffect(() => {
+    if (typeof window === "undefined" || !typeId) return;
+
+    const timer = window.setTimeout(() => {
+      const rawDraft = window.sessionStorage.getItem("aounak-voice-sos-draft");
+      if (!rawDraft) return;
+
+      try {
+        const draft = JSON.parse(rawDraft) as VoiceSosDraft;
+        if (draft.type === typeId) {
+          if (draft.name) setContactName(draft.name);
+          if (draft.phone) setContactPhone(draft.phone);
+          if (typeof draft.passengers === "number") setPeopleCount(Math.max(1, draft.passengers));
+          if (draft.notes) setCustomNotes(draft.notes);
+
+          if (typeId === "venomous_bite") {
+            if (draft.specifics) setVenomousThreatInfo(draft.specifics);
+            if (draft.bodyPart) setVenomousBodyPart(draft.bodyPart);
+          }
+          else if (typeId === "out_of_fuel" && draft.specifics) setFuelRequestInfo(draft.specifics);
+          else if (typeId === "vehicle_stuck" && draft.specifics) setStuckVehicleInfo(draft.specifics);
+          else if (typeId === "sick_livestock" && draft.specifics) setLivestockInfo(draft.specifics);
+          else if (typeId === "medical") {
+            if (draft.notes) setMedicalInfo(draft.notes);
+            if (draft.bodyPart) setInjuryLocation(draft.bodyPart);
+          }
+
+          setVoiceAutofilled(true);
+          // Clear draft so it doesn't trigger on subsequent loads
+          window.sessionStorage.removeItem("aounak-voice-sos-draft");
+        }
+      } catch (e) {
+        console.error("Failed to load voice draft", e);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [typeId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -413,6 +463,7 @@ export default function SOSClient() {
         clientSessionId: currentClientSessionId,
         createdByUid: user?.uid ?? null,
         notifiedCount: respondersWithDistance.length,
+        isVoiceCommand: voiceAutofilled,
       });
 
       setActiveIncidentId(incidentId);
@@ -509,6 +560,16 @@ export default function SOSClient() {
       </nav>
 
       <main className="relative z-10 mx-auto max-w-2xl space-y-6 px-5">
+        {voiceAutofilled && (
+          <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3.5 flex items-center gap-3 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-sm">
+              ✨
+            </span>
+            <p className="text-xs text-indigo-200/90 font-medium leading-relaxed">
+              <strong>Voice Assistant:</strong> Form details successfully populated from your voice transcript.
+            </p>
+          </div>
+        )}
         <div className="relative space-y-3 text-center">
           <div className="absolute inset-0 -z-10 mx-auto h-32 w-32 rounded-full bg-rose-500/10 blur-[50px]" />
           <div className={`mb-2 inline-flex rounded-3xl border p-5 shadow-[0_0_30px_rgba(244,63,94,0.15)] ${style.bg} ${style.border}`}>
@@ -708,7 +769,7 @@ export default function SOSClient() {
               onEdit={editBlock}
               onSave={() => saveBlock("venomousDiagnostics", "Bite Diagnostics", venomousThreatInfo || t("Venomous threat diagnostics pending."))}
             >
-              <OfflineAnimalAI onChange={handleVenomousChange} />
+              <OfflineAnimalAI onChange={handleVenomousChange} initialBodyPart={venomousBodyPart} />
             </RequestBlock>
           )}
 
@@ -792,15 +853,35 @@ export default function SOSClient() {
               editing={Boolean(editingBlocks.medical)}
               saving={blockSavingKey === "medical"}
               onEdit={editBlock}
-              onSave={() => saveBlock("medical", "Medical Assist Details", medicalInfo || t("Medical assistance details pending."))}
+              onSave={() => {
+                const parts = [];
+                if (injuryLocation) parts.push(`Injury Location: ${injuryLocation}`);
+                if (medicalInfo.trim()) parts.push(`Details: ${medicalInfo.trim()}`);
+                const summary = parts.join(" | ") || t("Medical assistance details pending.");
+                saveBlock("medical", "Medical Assist Details", summary);
+              }}
             >
-              <textarea
-                value={medicalInfo}
-                onChange={(event) => setMedicalInfo(event.target.value)}
-                placeholder={t("Symptoms, injuries, allergies, consciousness...")}
-                rows={3}
-                className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none"
-              />
+              <div className="space-y-4">
+                <BodyLocationSelector
+                  selectedPart={injuryLocation}
+                  onSelectPart={setInjuryLocation}
+                  title={t("Select Injury Location")}
+                  themeColor="indigo"
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Injury Details & Symptoms
+                  </label>
+                  <textarea
+                    value={medicalInfo}
+                    onChange={(event) => setMedicalInfo(event.target.value)}
+                    placeholder={t("Symptoms, injuries, allergies, consciousness...")}
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
             </RequestBlock>
           )}
         </div>

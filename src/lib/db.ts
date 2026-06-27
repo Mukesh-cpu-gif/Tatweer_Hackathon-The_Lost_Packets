@@ -14,8 +14,8 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import type { Coordinates } from "./geo";
-import { sosTypes } from "./mockData";
-import type { Incident, Responder, SOSCategory, WeatherAlert } from "./mockData";
+import { mockBlockades, mockSafeRoutes, sosTypes } from "./mockData";
+import type { Incident, Responder, SOSCategory, WeatherAlert, Blockade, SafeRoute } from "./mockData";
 
 const FIRESTORE_FALLBACK_MS = 3000;
 const LOCAL_INCIDENTS_KEY = "aounak-local-incidents";
@@ -78,6 +78,7 @@ export interface IncidentSummaryInput {
   clientSessionId?: string;
   createdByUid?: string | null;
   notifiedCount?: number;
+  isVoiceCommand?: boolean;
 }
 
 export type ResponderProfile = CommunityProfile;
@@ -430,6 +431,7 @@ export const createIncidentSummary = async (input: IncidentSummaryInput) => {
     },
     acceptedBy: [],
     acceptedByNames: [],
+    isVoiceCommand: Boolean(input.isVoiceCommand),
     timestamp: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -447,6 +449,7 @@ export const createIncidentSummary = async (input: IncidentSummaryInput) => {
       requiredSkills,
       timestamp: new Date().toISOString(),
       requesterName: newIncident.requesterName,
+      isVoiceCommand: newIncident.isVoiceCommand,
       clientSessionId,
       createdByUid: input.createdByUid ?? undefined,
       responderCounts: newIncident.responderCounts,
@@ -747,6 +750,200 @@ export const subscribeToWeatherAlerts = (callback: (alerts: WeatherAlert[]) => v
       clearTimeout(fallbackTimer);
       warnFirestoreFallback("Weather alerts", error);
       callback([]);
+    }
+  );
+
+  return () => {
+    clearTimeout(fallbackTimer);
+    unsubscribe();
+  };
+};
+
+// ─── Blockades & Safe Routes Database Actions ──────────────────────
+const LOCAL_BLOCKADES_KEY = "aounak-local-blockades";
+const LOCAL_SAFE_ROUTES_KEY = "aounak-local-safe-routes";
+
+const readLocalBlockades = (): Blockade[] => {
+  if (!isBrowser()) return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_BLOCKADES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalBlockades = (blockades: Blockade[]) => {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(LOCAL_BLOCKADES_KEY, JSON.stringify(blockades));
+};
+
+const readLocalSafeRoutes = (): SafeRoute[] => {
+  if (!isBrowser()) return [];
+  try {
+    const raw = window.localStorage.getItem(LOCAL_SAFE_ROUTES_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalSafeRoutes = (routes: SafeRoute[]) => {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(LOCAL_SAFE_ROUTES_KEY, JSON.stringify(routes));
+};
+
+export const saveBlockade = async (blockadeInput: Omit<Blockade, "id"> & { id?: string }) => {
+  const id = blockadeInput.id ?? `BLK-${Date.now()}`;
+  const blockade: Blockade = {
+    id,
+    name: blockadeInput.name.trim(),
+    type: blockadeInput.type,
+    location: blockadeInput.location,
+    radiusKm: blockadeInput.radiusKm,
+  };
+
+  const localBlockades = readLocalBlockades();
+  writeLocalBlockades([blockade, ...localBlockades.filter((b) => b.id !== id)]);
+
+  try {
+    await setDoc(doc(db, "blockades", id), {
+      ...blockade,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    warnFirestoreFallback("Blockade save", error);
+  }
+  return id;
+};
+
+export const subscribeToBlockades = (callback: (blockades: Blockade[]) => void) => {
+  const blockadesRef = collection(db, "blockades");
+  let settled = false;
+  let unsubscribe = () => {};
+
+  const localBlockades = readLocalBlockades();
+  callback(localBlockades.length ? localBlockades : mockBlockades);
+
+  const fallbackTimer = setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    warnFirestoreFallback("Blockades list");
+    callback(readLocalBlockades().length ? readLocalBlockades() : mockBlockades);
+    unsubscribe();
+  }, FIRESTORE_FALLBACK_MS);
+
+  unsubscribe = onSnapshot(
+    blockadesRef,
+    (snapshot) => {
+      settled = true;
+      clearTimeout(fallbackTimer);
+      const blockades: Blockade[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        blockades.push({
+          id: docSnap.id,
+          name: data.name,
+          type: data.type,
+          location: data.location,
+          radiusKm: data.radiusKm,
+        });
+      });
+      const finalBlockades = blockades.length ? blockades : mockBlockades;
+      writeLocalBlockades(finalBlockades);
+      callback(finalBlockades);
+    },
+    (error) => {
+      settled = true;
+      clearTimeout(fallbackTimer);
+      warnFirestoreFallback("Blockades list", error);
+      const fallback = readLocalBlockades().length ? readLocalBlockades() : mockBlockades;
+      callback(fallback);
+    }
+  );
+
+  return () => {
+    clearTimeout(fallbackTimer);
+    unsubscribe();
+  };
+};
+
+export const saveSafeRoute = async (routeInput: Omit<SafeRoute, "id"> & { id?: string }) => {
+  const id = routeInput.id ?? `SR-${Date.now()}`;
+  const route: SafeRoute = {
+    id,
+    name: routeInput.name.trim(),
+    creatorName: routeInput.creatorName.trim(),
+    path: routeInput.path,
+    difficulty: routeInput.difficulty,
+    vehicleRequirements: routeInput.vehicleRequirements.trim(),
+    createdAt: routeInput.createdAt || new Date().toISOString(),
+    startPoint: routeInput.startPoint || routeInput.path[0],
+    endPoint: routeInput.endPoint || routeInput.path[routeInput.path.length - 1],
+  };
+
+  const localRoutes = readLocalSafeRoutes();
+  writeLocalSafeRoutes([route, ...localRoutes.filter((r) => r.id !== id)]);
+
+  try {
+    await setDoc(doc(db, "safe_routes", id), {
+      ...route,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    warnFirestoreFallback("Safe route save", error);
+  }
+  return id;
+};
+
+export const subscribeToSafeRoutes = (callback: (routes: SafeRoute[]) => void) => {
+  const routesRef = collection(db, "safe_routes");
+  let settled = false;
+  let unsubscribe = () => {};
+
+  const localRoutes = readLocalSafeRoutes();
+  callback(localRoutes.length ? localRoutes : mockSafeRoutes);
+
+  const fallbackTimer = setTimeout(() => {
+    if (settled) return;
+    settled = true;
+    warnFirestoreFallback("Safe routes list");
+    callback(readLocalSafeRoutes().length ? readLocalSafeRoutes() : mockSafeRoutes);
+    unsubscribe();
+  }, FIRESTORE_FALLBACK_MS);
+
+  unsubscribe = onSnapshot(
+    routesRef,
+    (snapshot) => {
+      settled = true;
+      clearTimeout(fallbackTimer);
+      const routes: SafeRoute[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        routes.push({
+          id: docSnap.id,
+          name: data.name,
+          creatorName: data.creatorName,
+          path: data.path,
+          difficulty: data.difficulty,
+          vehicleRequirements: data.vehicleRequirements,
+          createdAt: data.createdAt,
+          startPoint: data.startPoint,
+          endPoint: data.endPoint,
+        });
+      });
+      const finalRoutes = routes.length ? routes : mockSafeRoutes;
+      writeLocalSafeRoutes(finalRoutes);
+      callback(finalRoutes);
+    },
+    (error) => {
+      settled = true;
+      clearTimeout(fallbackTimer);
+      warnFirestoreFallback("Safe routes list", error);
+      const fallback = readLocalSafeRoutes().length ? readLocalSafeRoutes() : mockSafeRoutes;
+      callback(fallback);
     }
   );
 

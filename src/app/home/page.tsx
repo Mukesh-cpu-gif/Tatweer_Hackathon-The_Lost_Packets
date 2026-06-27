@@ -18,6 +18,7 @@ import {
   Tractor,
   User,
   X,
+  Mic,
 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import { EmergencyCommandTile } from "@/components/EmergencyCommandTile";
@@ -459,6 +460,18 @@ export default function HomePage() {
                   </Badge>
                 ))}
               </div>
+
+              {selectedIncident.isVoiceCommand && (
+                <div className="bg-indigo-950/20 border border-indigo-500/20 rounded-xl p-3 flex gap-3 shadow-[0_0_15px_rgba(99,102,241,0.05)]">
+                  <Mic size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div>
+                    <p className="text-[10px] text-indigo-400 font-bold tracking-widest uppercase mb-0.5">Created via Voice Command</p>
+                    <p className="text-xs text-indigo-200/80 leading-relaxed font-medium tracking-wide">
+                      ⚠️ Generated via Voice AI. May contain transcription errors; please verify details with requester.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2 border-t border-zinc-800/70 pt-4">
                 <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{t("Request Details")}</p>

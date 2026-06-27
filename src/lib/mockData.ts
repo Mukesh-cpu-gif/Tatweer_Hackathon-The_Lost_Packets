@@ -52,6 +52,7 @@ export interface Incident {
   requiredSkills: string[];
   timestamp: string;
   requesterName: string;
+  isVoiceCommand?: boolean;
   aiClassification?: string;
   clientSessionId?: string;
   createdByUid?: string;
@@ -256,3 +257,174 @@ export const sosTypes: SOSType[] = [
   },
 ];
 
+const MOCK_NOW = new Date("2026-06-26T14:00:00+04:00").getTime();
+
+// ─── Mock Responders (Al Qua'a Volunteers) ─────────────────────────
+export const mockResponders: Responder[] = [
+  {
+    id: "1",
+    name: "Ahmed Al Dhaheri",
+    phone: "+971501234567",
+    skills: ["Medical", "First Aid", "4x4"],
+    location: { lat: 23.541, lng: 55.489 },
+    available: true,
+    vehicleType: "Toyota Land Cruiser",
+  },
+  {
+    id: "2",
+    name: "Mohammed Al Kaabi",
+    phone: "+971502345678",
+    skills: ["Winch", "Heavy Machinery", "4x4"],
+    location: { lat: 23.55, lng: 55.495 },
+    available: true,
+    vehicleType: "Nissan Patrol (Winch)",
+  },
+  {
+    id: "3",
+    name: "Ali Al Mansouri",
+    phone: "+971503456789",
+    skills: ["Livestock Expert", "Veterinary", "4x4"],
+    location: { lat: 23.535, lng: 55.48 },
+    available: true,
+    vehicleType: "Toyota Hilux",
+  },
+  {
+    id: "4",
+    name: "Saeed Al Rumaithi",
+    phone: "+971504567890",
+    skills: ["Medical", "Anti-Venom"],
+    location: { lat: 23.548, lng: 55.502 },
+    available: false,
+    vehicleType: "Ford Raptor",
+  },
+  {
+    id: "5",
+    name: "Khalid Al Shamsi",
+    phone: "+971505678901",
+    skills: ["Plumbing", "Heavy Machinery", "Winch"],
+    location: { lat: 23.56, lng: 55.475 },
+    available: true,
+    vehicleType: "GMC Sierra",
+  },
+];
+
+// ─── Mock Active Incidents ─────────────────────────────────────────
+export const mockIncidents: Incident[] = [
+  {
+    id: "INC-1042",
+    type: "vehicle_stuck",
+    location: { lat: 23.545, lng: 55.49 },
+    status: "pending",
+    requiredSkills: ["Winch", "4x4"],
+    timestamp: new Date(MOCK_NOW - 4 * 60000).toISOString(),
+    requesterName: "Farm Worker (Site 7)",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 3, enRoute: 0 },
+    acceptedBy: [],
+    acceptedByNames: [],
+  },
+  {
+    id: "INC-1043",
+    type: "venomous_bite",
+    location: { lat: 23.53, lng: 55.47 },
+    status: "accepted",
+    requiredSkills: ["Medical", "Anti-Venom"],
+    timestamp: new Date(MOCK_NOW - 12 * 60000).toISOString(),
+    requesterName: "Rajesh K.",
+    aiClassification: "Arabian Horned Viper (High Confidence)",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 2, enRoute: 1 },
+    acceptedBy: ["seeded-helper"],
+    acceptedByNames: ["Saeed Al Rumaithi"],
+  },
+  {
+    id: "INC-1044",
+    type: "sick_livestock",
+    location: { lat: 23.555, lng: 55.485 },
+    status: "pending",
+    requiredSkills: ["Livestock Expert"],
+    timestamp: new Date(MOCK_NOW - 2 * 60000).toISOString(),
+    requesterName: "Hamad S.",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 2, enRoute: 0 },
+    acceptedBy: [],
+    acceptedByNames: [],
+  },
+];
+
+// ─── Mock Weather Alerts (Risk Radar) ──────────────────────────────
+export const mockWeatherAlerts: WeatherAlert[] = [
+  {
+    id: "WX-001",
+    type: "sandstorm",
+    severity: "warning",
+    title: "Sandstorm approaching from the west",
+    titleAr: "عاصفة رملية قادمة من الغرب",
+    description:
+      "Expected to reach Al Qua'a within 2 hours. Winds up to 60 km/h. Secure livestock and seek shelter.",
+    descriptionAr: "من المتوقع أن تصل إلى القوع خلال ساعتين. رياح تصل سرعتها إلى 60 كم/ساعة. يرجى تأمين المواشي والبحث عن مأوى.",
+    expiresAt: new Date(MOCK_NOW + 2 * 3600000).toISOString(),
+  },
+  {
+    id: "WX-002",
+    type: "heatwave",
+    severity: "danger",
+    title: "Extreme heat advisory",
+    titleAr: "تحذير من حرارة شديدة",
+    description:
+      "Temperatures expected to reach 52°C. Limit outdoor activity between 11 AM and 4 PM. Ensure water supply for livestock.",
+    descriptionAr: "من المتوقع أن تصل درجات الحرارة إلى 52 درجة مئوية. يرجى الحد من الأنشطة الخارجية بين الساعة 11 صباحاً و4 مساءً وتأمين المياه للمواشي.",
+    expiresAt: new Date(MOCK_NOW + 8 * 3600000).toISOString(),
+  },
+];
+
+// ─── Blockades & Hazards ──────────────────────────────────────────
+export interface Blockade {
+  id: string;
+  name: string;
+  type: "sand_dune" | "flood" | "military_zone" | "accident";
+  location: Coordinates;
+  radiusKm: number;
+}
+
+export const mockBlockades: Blockade[] = [
+  {
+    id: "BLK-001",
+    name: "Unstable Dune Collapse",
+    type: "sand_dune",
+    location: { lat: 23.535, lng: 55.478 },
+    radiusKm: 0.35, // 350 meters radius
+  },
+];
+
+// ─── Safe Routes ──────────────────────────────────────────────────
+export interface SafeRoute {
+  id: string;
+  name: string;
+  creatorName: string;
+  path: Coordinates[];
+  difficulty: "easy" | "moderate" | "hard";
+  vehicleRequirements: string;
+  createdAt: string;
+  startPoint: Coordinates;
+  endPoint: Coordinates;
+}
+
+export const mockSafeRoutes: SafeRoute[] = [
+  {
+    id: "SR-001",
+    name: "Al Qua'a Western Dune Pass",
+    creatorName: "Ahmed Al Dhaheri",
+    path: [
+      { lat: 23.55, lng: 55.485 },
+      { lat: 23.545, lng: 55.48 },
+      { lat: 23.54, lng: 55.472 },
+      { lat: 23.53, lng: 55.47 },
+    ],
+    difficulty: "easy",
+    vehicleRequirements: "4x4 & 15 PSI recommended",
+    createdAt: new Date(MOCK_NOW - 2 * 24 * 3600000).toISOString(),
+    startPoint: { lat: 23.55, lng: 55.485 },
+    endPoint: { lat: 23.53, lng: 55.47 },
+  },
+];

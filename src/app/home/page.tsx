@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User as FirebaseUser } from "firebase/auth";
@@ -97,6 +97,29 @@ export default function HomePage() {
 
   const clientSessionId = useMemo(() => getClientSessionId(), []);
   const userId = user?.uid;
+  const profileComplete = Boolean(
+    profile?.name.trim() &&
+    profile.phone.trim() &&
+    profile.vehicleType.trim() &&
+    profile.skills.length > 0
+  );
+  const profileStatusLabel = !profileComplete
+    ? t("Profile incomplete")
+    : profile?.available
+      ? t("Available to help")
+      : t("Profile offline");
+  const profileStatusDotClass = !profileComplete
+    ? "animate-pulse bg-rose-500"
+    : profile?.available
+      ? "bg-emerald-400"
+      : "bg-zinc-500";
+
+  const isOwnIncident = useCallback(
+    (incident: Incident) =>
+      Boolean(incident.createdByUid && userId && incident.createdByUid === userId) ||
+      Boolean(incident.clientSessionId && incident.clientSessionId === clientSessionId),
+    [clientSessionId, userId]
+  );
 
   const helperPrompt = useMemo(() => {
     if (!profile?.available || profile.skills.length === 0) return null;
@@ -105,8 +128,7 @@ export default function HomePage() {
       .filter((incident) => {
         if (incident.status !== "pending") return false;
         if (incident.id === dismissedPromptId) return false;
-        if (incident.createdByUid && userId && incident.createdByUid === userId) return false;
-        if (incident.clientSessionId && incident.clientSessionId === clientSessionId) return false;
+        if (isOwnIncident(incident)) return false;
         if (incident.acceptedBy?.includes(userId ?? clientSessionId)) return false;
         return incident.requiredSkills.some((skill) => profile.skills.includes(skill));
       })
@@ -117,7 +139,7 @@ export default function HomePage() {
       .sort((a, b) => a.distance - b.distance);
 
     return matches[0] ?? null;
-  }, [clientSessionId, dismissedPromptId, incidents, profile, userId]);
+  }, [clientSessionId, dismissedPromptId, incidents, isOwnIncident, profile, userId]);
 
   const timeAgo = (timestamp: string) => {
     const diff = Math.floor((now - new Date(timestamp).getTime()) / 60000);
@@ -127,6 +149,11 @@ export default function HomePage() {
   };
 
   const handleAccept = async (incident: Incident) => {
+    if (isOwnIncident(incident)) {
+      setDismissedPromptId(incident.id);
+      return;
+    }
+
     await acceptIncident(incident.id, {
       uid: user?.uid ?? clientSessionId,
       name: profile?.name ?? t("Community Helper"),
@@ -165,10 +192,11 @@ export default function HomePage() {
             <Link
               href="/profile"
               className="relative flex h-9 w-9 items-center justify-center rounded-full border border-zinc-700/50 bg-zinc-900/50 text-indigo-200/90 shadow-md transition-all duration-300 hover:bg-zinc-800"
-              title={t("Profile")}
+              title={profileStatusLabel}
+              aria-label={profileStatusLabel}
             >
               <User size={16} />
-              <span className={`absolute right-0 top-0 h-2.5 w-2.5 rounded-full border border-zinc-950 ${profile ? "bg-emerald-400" : "animate-pulse bg-rose-500"}`} />
+              <span className={`absolute right-0 top-0 h-2.5 w-2.5 rounded-full border border-zinc-950 ${profileStatusDotClass}`} />
             </Link>
             <button
               type="button"
@@ -380,7 +408,13 @@ export default function HomePage() {
                 )}
               </div>
 
-              {profile && selectedIncident.status === "pending" && (
+              {profile && selectedIncident.status === "pending" && isOwnIncident(selectedIncident) && (
+                <p className="rounded-xl border border-indigo-500/20 bg-indigo-950/20 p-3 text-center text-xs font-semibold uppercase tracking-widest text-indigo-200/80">
+                  {t("This is your request. Nearby helpers can accept it.")}
+                </p>
+              )}
+
+              {profile && selectedIncident.status === "pending" && !isOwnIncident(selectedIncident) && (
                 <Button onClick={() => handleAccept(selectedIncident)} className="h-12 w-full rounded-xl bg-indigo-600 font-bold uppercase tracking-widest text-white hover:bg-indigo-500">
                   <Navigation size={16} className={`mr-2 ${isAr ? "rotate-180" : ""}`} />
                   {t("I Can Help")}

@@ -641,11 +641,17 @@ export const acceptIncident = async (
   incidentId: string,
   responder?: { uid?: string; name?: string }
 ) => {
-  const responderId = responder?.uid ?? `local-${getClientSessionId()}`;
+  const currentSessionId = getClientSessionId();
+  const responderId = responder?.uid ?? `local-${currentSessionId}`;
   const responderName = responder?.name ?? "Community Helper";
 
   try {
-    await updateDoc(doc(db, "incidents", incidentId), {
+    const incidentRef = doc(db, "incidents", incidentId);
+    const incidentSnapshot = await getDoc(incidentRef);
+    const incident = incidentSnapshot.exists() ? toIncident(incidentSnapshot.id, incidentSnapshot.data()) : null;
+    if (incident?.createdByUid === responderId || incident?.clientSessionId === currentSessionId) return;
+
+    await updateDoc(incidentRef, {
       status: "accepted",
       acceptedBy: arrayUnion(responderId),
       acceptedByNames: arrayUnion(responderName),
@@ -657,16 +663,18 @@ export const acceptIncident = async (
     writeLocalIncidents(
       readLocalIncidents().map((incident) =>
         incident.id === incidentId
-          ? {
-              ...incident,
-              status: "accepted",
-              acceptedBy: Array.from(new Set([...(incident.acceptedBy ?? []), responderId])),
-              acceptedByNames: Array.from(new Set([...(incident.acceptedByNames ?? []), responderName])),
-              responderCounts: {
-                notified: incident.responderCounts?.notified ?? 0,
-                enRoute: (incident.responderCounts?.enRoute ?? 0) + 1,
-              },
-            }
+          ? incident.createdByUid === responderId || incident.clientSessionId === currentSessionId
+            ? incident
+            : {
+                ...incident,
+                status: "accepted",
+                acceptedBy: Array.from(new Set([...(incident.acceptedBy ?? []), responderId])),
+                acceptedByNames: Array.from(new Set([...(incident.acceptedByNames ?? []), responderName])),
+                responderCounts: {
+                  notified: incident.responderCounts?.notified ?? 0,
+                  enRoute: (incident.responderCounts?.enRoute ?? 0) + 1,
+                },
+              }
           : incident
       )
     );

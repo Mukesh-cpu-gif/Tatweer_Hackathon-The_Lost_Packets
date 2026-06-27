@@ -1,0 +1,29 @@
+name: Demo readiness
+description: Track final hackathon demo or repo-submission readiness tasks.
+title: "[Demo]: "
+labels: ["demo", "submission"]
+body:
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: What needs to be ready for judging?
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Must fix before submission
+        - Should fix if time permits
+        - Nice polish
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: Proof of done
+      description: What screenshot, command output, or demo step will verify this?
+    validations:
+      required: true

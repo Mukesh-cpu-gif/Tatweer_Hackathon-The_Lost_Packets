@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Activity, ArrowRight, Bug, ChevronLeft, Droplet, Fuel, HeartPulse, ShieldAlert, Stethoscope, Tractor } from "lucide-react";
+import { Activity, Bug, ChevronLeft, Droplet, Fuel, HeartPulse, ShieldAlert, Stethoscope, Tractor } from "lucide-react";
+import { EmergencyCommandTile } from "@/components/EmergencyCommandTile";
+import { StatusPill } from "@/components/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
 import { sosTypes } from "@/lib/mockData";
 
@@ -17,13 +18,22 @@ const iconMap: Record<string, React.ElementType> = {
   Fuel,
 };
 
+const commandToneByType: Record<string, "danger" | "warning" | "system" | "gps" | "neutral"> = {
+  venomous_bite: "danger",
+  medical: "danger",
+  vehicle_stuck: "warning",
+  sick_livestock: "warning",
+  out_of_fuel: "system",
+  water_emergency: "gps",
+};
+
 export default function SOSChooserPage() {
   const { t, language, toggleLanguage, isAr } = useLanguage();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-10 selection:bg-rose-500/30">
-      <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-rose-600/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-indigo-600/10 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 pb-10 selection:bg-rose-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(76,29,149,0.36),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.96))]" />
 
       <nav className="relative z-10 mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
         <Link href="/">
@@ -53,30 +63,22 @@ export default function SOSChooserPage() {
           <p className="text-sm font-semibold uppercase tracking-widest text-rose-200/60">
             {t("Choose Emergency Type")}
           </p>
+          <StatusPill tone="live" pulse>{t("Active Emergency")}</StatusPill>
         </div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           {sosTypes.map((sos) => {
             const Icon = sos.lucideIconName && iconMap[sos.lucideIconName] ? iconMap[sos.lucideIconName] : Activity;
-            const style = sos.styleConfig ?? {
-              bg: "bg-zinc-900/40 border border-zinc-800/50 hover:bg-white/5",
-              text: "text-zinc-300",
-              iconColor: "text-zinc-400",
-            };
 
             return (
               <Link key={sos.id} href={`/sos/report?type=${sos.id}&returnTo=/sos`} className="block">
-                <Card className={`group min-h-36 overflow-hidden rounded-2xl shadow-none ${style.bg}`}>
-                  <CardContent className="flex h-full flex-col items-center justify-between p-5 text-center">
-                    <Icon size={34} strokeWidth={1.5} className={`${style.iconColor} mb-3 transition-transform duration-500 group-hover:scale-110`} />
-                    <div>
-                      <p className={`text-sm font-bold uppercase tracking-wide ${style.text}`}>
-                        {language === "ar" ? sos.labelAr : sos.label}
-                      </p>
-                    </div>
-                    <ArrowRight size={15} className={`mt-4 text-zinc-500 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-rose-300 ${isAr ? "rotate-180" : ""}`} />
-                  </CardContent>
-                </Card>
+                <EmergencyCommandTile
+                  icon={Icon}
+                  label={language === "ar" ? sos.labelAr : sos.label}
+                  description={language === "ar" ? sos.descriptionAr : sos.description}
+                  tone={commandToneByType[sos.id] ?? "neutral"}
+                  isRtl={isAr}
+                />
               </Link>
             );
           })}

@@ -165,7 +165,7 @@ export default function FuelCalculator({ coordinates, onChange, responders = [] 
     } else {
       return fuelEconomyNumber > 0 ? 100 / fuelEconomyNumber : 10;
     }
-  }, [fuelEconomyInput, fuelEconomyUnit, fuelEconomyNumber]);
+  }, [fuelEconomyUnit, fuelEconomyNumber]);
 
   const calculatedVolume = useMemo(() => {
     if (!selectedStation) return 0;

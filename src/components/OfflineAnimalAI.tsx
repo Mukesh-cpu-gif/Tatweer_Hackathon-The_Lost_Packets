@@ -187,7 +187,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
     return () => clearInterval(interval);
   }, [biteTime]);
 
-  const formatElapsed = (totalSecs: number) => {
+  const formatElapsed = useCallback((totalSecs: number) => {
     const hrs = Math.floor(totalSecs / 3600);
     const mins = Math.floor((totalSecs % 3600) / 60);
     const secs = totalSecs % 60;
@@ -195,7 +195,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
       return `${hrs.toString().padStart(2, "0")}س : ${mins.toString().padStart(2, "0")}د : ${secs.toString().padStart(2, "0")}ث`;
     }
     return `${hrs.toString().padStart(2, "0")}h : ${mins.toString().padStart(2, "0")}m : ${secs.toString().padStart(2, "0")}s`;
-  };
+  }, [isAr]);
 
   // Determine current timeline phase index
   const currentPhaseIndex = useMemo(() => {
@@ -499,7 +499,7 @@ export default function OfflineAnimalAI({ onChange }: { onChange?: (info: string
     }
 
     onChange(parts.join(" | "));
-  }, [result, selectedBodyPart, elapsedSeconds, selectedSymptoms, firstAidActions, biteTimePreset, onChange, isAr, t]);
+  }, [result, selectedBodyPart, elapsedSeconds, selectedSymptoms, firstAidActions, biteTimePreset, onChange, isAr, t, formatElapsed]);
 
   const runInference = useCallback(async (canvas: HTMLCanvasElement) => {
     if (!modelRef.current) return;

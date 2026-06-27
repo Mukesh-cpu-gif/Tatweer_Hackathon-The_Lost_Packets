@@ -26,10 +26,15 @@ import {
 } from "lucide-react";
 import DeflationGuide from "@/components/DeflationGuide";
 import FuelCalculator from "@/components/FuelCalculator";
+import { GlassPanel } from "@/components/GlassPanel";
 import LivestockSelector from "@/components/LivestockSelector";
+import { StatusPill } from "@/components/StatusPill";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 import { calculateDistance } from "@/lib/geo";
@@ -62,11 +67,15 @@ const iconMap: Record<string, React.ElementType> = {
 const OfflineAnimalAI = dynamic(() => import("@/components/OfflineAnimalAI"), {
   ssr: false,
   loading: () => (
-    <Card className="border-slate-800 bg-slate-900/50 backdrop-blur">
-      <CardContent className="p-6 text-center text-sm font-semibold uppercase tracking-widest text-zinc-500">
-        Loading AI identifier...
-      </CardContent>
-    </Card>
+    <GlassPanel tone="system" className="p-4">
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-24 w-full" />
+        <p className="text-center text-sm font-semibold uppercase tracking-widest text-zinc-500">
+          Loading AI identifier...
+        </p>
+      </div>
+    </GlassPanel>
   ),
 });
 
@@ -141,7 +150,7 @@ function RequestBlock({
   const savedRows = savedSummary ? formatSummaryRows(savedSummary) : [];
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md transition-all duration-500 hover:border-t-indigo-500/30">
+    <GlassPanel interactive className="p-0">
       <div className="border-b border-zinc-800/50 p-4 pb-3">
         <div className="flex items-center justify-between gap-3 text-sm font-bold uppercase tracking-widest text-zinc-300">
           <span className="flex items-center gap-2">
@@ -189,14 +198,16 @@ function RequestBlock({
               {saving ? t("Saving...") : hasSaved ? t("Update request") : t("Add to request")}
             </Button>
             {!activeIncidentId && (
-              <p className="text-center text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-                {t("Send Live Digital SOS first to update responders.")}
-              </p>
+              <Alert variant="warning">
+                <AlertDescription className="text-center font-semibold uppercase tracking-widest">
+                  {t("Send Live Digital SOS first to update responders.")}
+                </AlertDescription>
+              </Alert>
             )}
           </>
         )}
       </div>
-    </section>
+    </GlassPanel>
   );
 }
 
@@ -332,6 +343,7 @@ export default function SOSClient() {
 
   const notifiedCount = incidentSummary?.responderCounts?.notified ?? respondersWithDistance.length;
   const enRouteCount = incidentSummary?.responderCounts?.enRoute ?? 0;
+  const dispatchProgress = activeIncidentId ? (enRouteCount > 0 ? 100 : notifiedCount > 0 ? 66 : 33) : 0;
 
   const contactSummary = useMemo(() => {
     const parts = [
@@ -476,9 +488,9 @@ export default function SOSClient() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-rose-500/30">
-      <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-rose-600/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-indigo-600/10 blur-[100px]" />
+    <div className="relative min-h-screen overflow-hidden bg-zinc-950 pb-24 selection:bg-rose-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(127,29,29,0.32),transparent_52%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
 
       <nav className="relative z-10 mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
         <Link href={backHref}>
@@ -511,18 +523,19 @@ export default function SOSClient() {
           </div>
         </div>
 
-        <Card className="border border-zinc-800/50 bg-zinc-900/40 shadow-none backdrop-blur-md">
-          <CardHeader className="border-b border-zinc-800/50 pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
+        <GlassPanel tone={geoError ? "warning" : "gps"} className="p-0">
+          <div className="border-b border-zinc-800/50 p-4 pb-3">
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-zinc-300">
               <MapPin size={16} className="text-indigo-400" />
               {t("Your Coordinates")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
+            </h2>
+          </div>
+          <div className="p-4">
             {!coords ? (
-              <div className="flex items-center gap-3 text-zinc-400">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-500/50 border-t-indigo-400" />
-                <span className="text-sm font-medium tracking-wide">{t("Acquiring satellite lock...")}</span>
+              <div className="space-y-3">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-10 w-full" />
+                <p className="text-sm font-medium tracking-wide text-zinc-400">{t("Acquiring satellite lock...")}</p>
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3">
@@ -533,7 +546,11 @@ export default function SOSClient() {
                       {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
                     </span>
                   </div>
-                  {geoError && <p className="mt-1 text-xs text-amber-500/70">{t(geoError)}</p>}
+                  {geoError && (
+                    <Alert variant="warning" className="mt-3">
+                      <AlertDescription>{t(geoError)}</AlertDescription>
+                    </Alert>
+                  )}
                 </div>
                 <Button variant="outline" size="sm" onClick={handleCopy} className="border-zinc-700 bg-zinc-950/50 text-zinc-300 hover:bg-zinc-800">
                   {copied ? <CheckCircle2 size={14} className="mr-1 text-emerald-400" /> : <Copy size={14} className="mr-1 opacity-70" />}
@@ -541,17 +558,28 @@ export default function SOSClient() {
                 </Button>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </GlassPanel>
 
-        <Card className="border border-rose-500/30 bg-rose-950/15 shadow-[0_0_25px_rgba(244,63,94,0.1)] backdrop-blur-md">
-          <CardContent className="space-y-4 p-4">
+        <GlassPanel tone="danger" className="p-4">
+          <div className="space-y-4">
             {activeIncidentId ? (
               <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">{t("SOS Active")}</p>
-                <p className="mt-1 text-sm text-emerald-100/80">
+                <div className="flex items-center justify-between gap-3">
+                  <StatusPill tone="success" pulse>{t("Live request active")}</StatusPill>
+                  <span className="font-mono text-[10px] text-emerald-200/60">ID {activeIncidentId.slice(0, 8).toUpperCase()}</span>
+                </div>
+                <p className="mt-2 text-sm text-emerald-100/80">
                   {notifiedCount} {t("Responders")} {t("notified")} · {enRouteCount} {t("en route")}
                 </p>
+                <div className="mt-3 space-y-2">
+                  <Progress value={dispatchProgress} className="[&_div]:bg-emerald-400" />
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-200/65">
+                    <span>{t("Created")}</span>
+                    <span className="text-center">{t("Alerted")}</span>
+                    <span className="text-right">{t("En route")}</span>
+                  </div>
+                </div>
               </div>
             ) : (
               <Button
@@ -567,19 +595,21 @@ export default function SOSClient() {
             <Button
               onClick={handleOfflineSms}
               disabled={!coords}
-              className="h-14 w-full rounded-xl border border-rose-500/40 bg-rose-600/25 text-sm font-bold uppercase tracking-widest text-rose-200 shadow-[0_0_20px_rgba(244,63,94,0.15)] transition-all duration-500 hover:bg-rose-600/35"
+              className="h-14 w-full rounded-xl border border-amber-500/40 bg-amber-600/20 text-sm font-bold uppercase tracking-widest text-amber-200 shadow-[0_0_20px_rgba(245,158,11,0.14)] transition-all duration-500 hover:bg-amber-600/30"
             >
               <Send size={18} className="mr-2" strokeWidth={2} />
               {t("Send Offline SMS (Zero Data)")}
             </Button>
 
             {(sendNotice || sendError || queued) && (
-              <p className={`text-center text-xs font-semibold uppercase tracking-widest ${sendError ? "text-rose-300" : "text-emerald-300"}`}>
-                {sendError ?? sendNotice ?? t("SOS saved/sending...")}
-              </p>
+              <Alert variant={sendError || queued ? "warning" : "success"}>
+                <AlertDescription className="text-center font-semibold uppercase tracking-widest">
+                  {sendError ?? sendNotice ?? t("SOS saved/sending...")}
+                </AlertDescription>
+              </Alert>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </GlassPanel>
 
         <div className="space-y-4">
           <RequestBlock

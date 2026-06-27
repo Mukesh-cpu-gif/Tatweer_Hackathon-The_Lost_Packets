@@ -3,9 +3,13 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
+import { GlassPanel } from "@/components/GlassPanel";
+import { StatusPill } from "@/components/StatusPill";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import MapWrapper from "@/components/MapWrapper";
 import { ChevronLeft, Navigation2, Timer, Map as MapIcon, Route, Compass, Maximize2, X, AlertTriangle } from "lucide-react";
 import { getIncidentById } from "@/lib/db";
@@ -84,13 +88,26 @@ function MapContent() {
   const incident = incidentLookup?.id === incidentId ? incidentLookup.incident : null;
 
   if (loading) {
-    return <div className="p-8 text-center text-zinc-400 uppercase tracking-widest text-sm animate-pulse">Fetching Incident Coordinates...</div>;
+    return (
+      <main className="relative z-10 mx-auto max-w-2xl space-y-4 px-5 py-8">
+        <GlassPanel tone="system" className="p-5">
+          <Skeleton className="mb-4 h-4 w-48" />
+          <Skeleton className="h-56 w-full" />
+          <p className="mt-4 text-center text-sm font-bold uppercase tracking-widest text-zinc-400">
+            Fetching Incident Coordinates...
+          </p>
+        </GlassPanel>
+      </main>
+    );
   }
 
   if (!incident) {
     return (
       <div className="p-8 text-center">
-        <p className="text-zinc-400 mb-4">Incident Not Found</p>
+        <Alert variant="warning" className="mb-4">
+          <AlertTitle>Incident Not Found</AlertTitle>
+          <AlertDescription>Return to dispatch and select another active request.</AlertDescription>
+        </Alert>
         <Link href="/responder">
           <Button variant="outline" className="border-zinc-700">Return to Dispatch</Button>
         </Link>
@@ -120,9 +137,7 @@ function MapContent() {
               </p>
             </div>
           </div>
-          <Badge variant="outline" className="bg-indigo-950/30 border-indigo-500/30 text-indigo-300 font-bold tracking-widest text-[10px] uppercase">
-            ID: {incident.id}
-          </Badge>
+          <StatusPill tone="system">ID: {incident.id}</StatusPill>
         </div>
       </header>
 
@@ -130,40 +145,45 @@ function MapContent() {
         
         {/* Geo Warning Banner */}
         {geoError && (
-          <div className="bg-amber-950/30 border border-amber-500/30 rounded-xl p-3 flex items-start gap-3">
+          <Alert variant="warning">
+          <div className="flex items-start gap-3">
             <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-amber-200/80 text-xs font-medium tracking-wide leading-relaxed">
+            <AlertDescription>
               {geoError} This happens on local networks or if permissions are denied.
-            </p>
+            </AlertDescription>
           </div>
+          </Alert>
         )}
 
         {/* Post-Deployment Notice Banner */}
-        <div className="bg-indigo-950/20 border border-indigo-500/30 rounded-xl p-3 flex items-start gap-3">
+        <Alert variant="system">
+        <div className="flex items-start gap-3">
           <Compass size={18} className="text-indigo-400 shrink-0 mt-0.5 animate-pulse" />
-          <p className="text-indigo-200/80 text-xs font-medium tracking-wide leading-relaxed">
+          <AlertDescription>
             <strong>Post-Deployment Note:</strong> Advanced hardware features (Live Compass Direct Bearing and Real-Time Mobile GPS tracking) require a secure HTTPS connection and will be completed once the project is deployed.
-          </p>
+          </AlertDescription>
         </div>
+        </Alert>
 
         {/* ─── Summary Card ────────────────────────────────────── */}
-        <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-5 flex items-center gap-4 shadow-[0_0_30px_rgba(16,185,129,0.05)]">
+        <GlassPanel tone="success" className="flex items-center gap-4 p-5">
           <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
             <span className="text-lg font-bold text-emerald-400">35m</span>
           </div>
           <div>
-            <h3 className="text-emerald-300 text-sm font-bold tracking-widest uppercase mb-1">Massive Time Save</h3>
+            <h3 className="text-emerald-300 text-sm font-bold tracking-widest uppercase mb-1">Prototype Route Estimate</h3>
             <p className="text-emerald-200/70 text-xs font-medium leading-relaxed tracking-wide">
-              Aounak saves 35 minutes by routing through accessible dune paths instead of standard highway detours.
+              Hackathon demo data compares a 12-minute off-road route with a 47-minute paved detour for this incident.
             </p>
           </div>
-        </div>
+        </GlassPanel>
 
         {!responderCoords ? (
-          <div className="h-64 flex flex-col items-center justify-center bg-zinc-900/20 border border-zinc-800/30 rounded-2xl border-dashed">
-            <div className="w-8 h-8 border-2 border-indigo-500/50 border-t-indigo-400 rounded-full animate-spin mb-3" />
+          <GlassPanel className="flex h-64 flex-col items-center justify-center border-dashed border-zinc-800/80 p-5">
+            <Skeleton className="mb-3 h-10 w-10 rounded-full" />
+            <Skeleton className="mb-4 h-4 w-48" />
             <p className="text-zinc-500 text-sm font-medium tracking-wide">Acquiring GPS Signal...</p>
-          </div>
+          </GlassPanel>
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {/* ─── Standard Road Route ────────────────────────────── */}
@@ -288,9 +308,9 @@ function MapContent() {
 
 export default function MapComparison() {
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
-      {/* ─── Cosmic Nebulas ───────────────────────────────────── */}
-      <div className="absolute top-[30%] right-[-10%] w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[120px] pointer-events-none" />
+    <div className="relative min-h-screen bg-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.34),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.08),rgba(9,9,11,0.97))]" />
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-zinc-500 font-bold uppercase tracking-widest">Loading Route Data...</div>}>
         <MapContent />
       </Suspense>

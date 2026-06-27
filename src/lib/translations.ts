@@ -31,6 +31,7 @@ export const translations: Record<string, { en: string; ar: string }> = {
   "View Live Incident Map": { en: "View Live Incident Map", ar: "عرض خريطة البلاغات المباشرة" },
   "Incident": { en: "Incident", ar: "بلاغ" },
   "Status": { en: "Status", ar: "الحالة" },
+  "Skills": { en: "Skills", ar: "المهارات" },
   "Pending": { en: "Pending", ar: "قيد الانتظار" },
   "Accepted": { en: "Accepted", ar: "تم القبول" },
   "Resolved": { en: "Resolved", ar: "تم الحل" },
@@ -375,6 +376,7 @@ export const translations: Record<string, { en: string; ar: string }> = {
   "Add your full name and phone number before saving.": { en: "Add your full name and phone number before saving.", ar: "أدخل الاسم الكامل ورقم الهاتف قبل الحفظ." },
   "Profile saved.": { en: "Profile saved.", ar: "تم حفظ الملف الشخصي." },
   "Could not save your profile. Please try again.": { en: "Could not save your profile. Please try again.", ar: "تعذر حفظ ملفك الشخصي. حاول مرة أخرى." },
+  "Profile readiness": { en: "Profile readiness", ar: "جاهزية الملف الشخصي" },
   "Skills & Availability": { en: "Skills & Availability", ar: "المهارات والتوفر" },
   "Available to Help": { en: "Available to Help", ar: "متاح للمساعدة" },
   "Available to help": { en: "Available to help", ar: "متاح للمساعدة" },
@@ -415,6 +417,7 @@ export const translations: Record<string, { en: string; ar: string }> = {
 
   // Request blocks and responder flow
   "SOS Active": { en: "SOS Active", ar: "الاستغاثة نشطة" },
+  "Live request active": { en: "Live request active", ar: "طلب مباشر نشط" },
   "SOS sent. Responders can see the location now.": { en: "SOS sent. Responders can see the location now.", ar: "تم إرسال الاستغاثة. يستطيع المستجيبون رؤية الموقع الآن." },
   "Live SOS failed. Use Offline SMS backup now.": { en: "Live SOS failed. Use Offline SMS backup now.", ar: "فشل إرسال الاستغاثة المباشرة. استخدم نسخة الرسائل القصيرة الاحتياطية الآن." },
   "Send Live Digital SOS first so responders can receive updates.": { en: "Send Live Digital SOS first so responders can receive updates.", ar: "أرسل الاستغاثة الرقمية المباشرة أولاً حتى تصل التحديثات للمستجيبين." },
@@ -441,6 +444,7 @@ export const translations: Record<string, { en: string; ar: string }> = {
   "Pump failure, water shortage, animals affected...": { en: "Pump failure, water shortage, animals affected...", ar: "تعطل المضخة، نقص المياه، الحيوانات المتأثرة..." },
   "Symptoms, injuries, allergies, consciousness...": { en: "Symptoms, injuries, allergies, consciousness...", ar: "الأعراض، الإصابات، الحساسية، حالة الوعي..." },
   "Ready": { en: "Ready", ar: "جاهز" },
+  "En route": { en: "En route", ar: "في الطريق" },
   "Edit": { en: "Edit", ar: "تعديل" },
   "Update request": { en: "Update request", ar: "تحديث الطلب" },
   "Add to request": { en: "Add to request", ar: "إضافة إلى الطلب" },

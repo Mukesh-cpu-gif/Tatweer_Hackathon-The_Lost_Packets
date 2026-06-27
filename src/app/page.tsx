@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { ArrowRight, Compass, LogIn, ShieldAlert, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { EmergencyCommandTile } from "@/components/EmergencyCommandTile";
+import { GlassPanel } from "@/components/GlassPanel";
+import { StatusPill } from "@/components/StatusPill";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
 
@@ -36,10 +38,9 @@ export default function WelcomePage() {
   }, [router]);
 
   return (
-    <div className="relative flex min-h-screen flex-col justify-between overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 selection:bg-indigo-500/30">
-      <div className="pointer-events-none absolute left-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-indigo-600/10 blur-[120px]" />
-      <div className="pointer-events-none absolute bottom-[20%] right-[-10%] h-[400px] w-[400px] rounded-full bg-purple-600/10 blur-[100px]" />
-      <div className="pointer-events-none absolute left-[20%] top-[40%] h-[300px] w-[300px] rounded-full bg-sky-600/10 blur-[100px]" />
+    <div className="relative flex min-h-screen flex-col justify-between overflow-hidden bg-zinc-950 selection:bg-indigo-500/30">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.045)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:48px_48px] opacity-20" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(49,46,129,0.45),transparent_55%),linear-gradient(to_bottom,rgba(12,10,9,0.12),rgba(9,9,11,0.96))]" />
 
       <header className="relative z-10 mx-auto flex w-full max-w-4xl items-center justify-between px-5 py-5">
         <div>
@@ -49,6 +50,9 @@ export default function WelcomePage() {
           <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-200/50">
             {t("Rapid Response Network")}
           </p>
+          <div className="mt-2">
+            <StatusPill tone="system">{t("Dispatch Center")}</StatusPill>
+          </div>
         </div>
 
         <button
@@ -75,9 +79,8 @@ export default function WelcomePage() {
         </div>
 
         <div className="grid gap-4">
-          <Card className="group relative overflow-hidden rounded-2xl border border-rose-500/25 bg-zinc-900/35 shadow-[0_0_20px_rgba(0,0,0,0.3)] transition-all duration-500 hover:-translate-y-1 hover:border-rose-400/45">
-            <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-32 w-32 rounded-full bg-rose-500/10 blur-[40px] transition-all duration-500 group-hover:bg-rose-500/15" />
-            <CardContent className="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <GlassPanel tone="danger" interactive className="group">
+            <div className="relative z-10 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-4">
                 <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-3 shadow-md">
                   <ShieldAlert size={25} className="animate-pulse text-rose-500" />
@@ -97,52 +100,31 @@ export default function WelcomePage() {
                   <ArrowRight size={14} className={`ml-2 ${isAr ? "rotate-180" : ""}`} />
                 </Button>
               </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassPanel>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 shadow-[0_0_20px_rgba(0,0,0,0.3)] transition-all duration-500 hover:-translate-y-1 hover:border-indigo-500/30">
-              <CardContent className="relative z-10 flex h-full flex-col justify-between p-5">
-                <div className="space-y-3">
-                  <div className="inline-flex rounded-2xl border border-indigo-500/20 bg-indigo-500/10 p-3">
-                    <LogIn size={22} className="text-indigo-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-zinc-100">{t("Log In")}</h3>
-                    <p className="mt-1 text-xs font-medium leading-relaxed text-zinc-400">
-                      {t("Return to your community profile and history.")}
-                    </p>
-                  </div>
-                </div>
-                <Link href="/login" className="mt-5 block">
-                  <Button variant="outline" className="h-11 w-full rounded-xl border-zinc-700/50 bg-zinc-950/50 text-xs font-bold uppercase tracking-widest text-zinc-300 hover:bg-indigo-950/50 hover:text-indigo-200">
-                    {t("Log In")}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <Link href="/login" className="block">
+              <EmergencyCommandTile
+                icon={LogIn}
+                label={t("Log In")}
+                description={t("Return to your community profile and history.")}
+                tone="system"
+                isRtl={isAr}
+              />
+            </Link>
 
-            <Card className="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/30 shadow-[0_0_20px_rgba(0,0,0,0.3)] transition-all duration-500 hover:-translate-y-1 hover:border-sky-500/30">
-              <CardContent className="relative z-10 flex h-full flex-col justify-between p-5">
-                <div className="space-y-3">
-                  <div className="inline-flex rounded-2xl border border-sky-500/20 bg-sky-500/10 p-3">
-                    <UserPlus size={22} className="text-sky-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-zinc-100">{t("Register")}</h3>
-                    <p className="mt-1 text-xs font-medium leading-relaxed text-zinc-400">
-                      {t("Create a profile so nearby helpers can match your skills.")}
-                    </p>
-                  </div>
-                </div>
-                <Link href="/register" className="mt-5 block">
-                  <Button variant="outline" className="h-11 w-full rounded-xl border-zinc-700/50 bg-zinc-950/50 text-xs font-bold uppercase tracking-widest text-zinc-300 hover:bg-sky-950/50 hover:text-sky-200">
-                    {t("Register")}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
+            <Link href="/register" className="block">
+              <EmergencyCommandTile
+                icon={UserPlus}
+                label={t("Register")}
+                description={t("Create a profile so nearby helpers can match your skills.")}
+                tone="gps"
+                isRtl={isAr}
+              />
+            </Link>
           </div>
+
         </div>
       </main>
 

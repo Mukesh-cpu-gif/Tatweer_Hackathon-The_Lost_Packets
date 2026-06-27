@@ -1,22 +1,11 @@
 "use client";
 
-import { useSyncExternalStore, useEffect, useState } from "react";
 import Link from "next/link";
-import RiskRadar from "@/components/RiskRadar";
-import { sosTypes } from "@/lib/mockData";
-import type { Incident } from "@/lib/mockData";
-import { subscribeToIncidents } from "@/lib/db";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Activity, ArrowRight, Bug, ChevronLeft, Droplet, Fuel, HeartPulse, ShieldAlert, Stethoscope, Tractor } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Activity, Bug, HeartPulse, Tractor, Stethoscope, Droplet, BrainCircuit, ArrowRight, Fuel, User, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { useLanguage } from "@/context/LanguageContext";
-import UserProfileModal, { type UserProfileData } from "@/components/UserProfileModal";
-import CrisisSetupModal from "@/components/CrisisSetupModal";
-
-/**
- * Aounak Dashboard — Deep Space & Stargazing Theme
- */
+import { sosTypes } from "@/lib/mockData";
 
 const iconMap: Record<string, React.ElementType> = {
   Activity,
@@ -28,320 +17,76 @@ const iconMap: Record<string, React.ElementType> = {
   Fuel,
 };
 
-function subscribeToNetworkStatus(callback: () => void) {
-  window.addEventListener("online", callback);
-  window.addEventListener("offline", callback);
-
-  return () => {
-    window.removeEventListener("online", callback);
-    window.removeEventListener("offline", callback);
-  };
-}
-
-function getNetworkStatus() {
-  return navigator.onLine;
-}
-
-function getServerNetworkStatus() {
-  return true;
-}
-
-export default function Home() {
-  const { t, language, toggleLanguage } = useLanguage();
-  const [recentIncidents, setRecentIncidents] = useState<Incident[]>([]);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [isCrisisModalOpen, setIsCrisisModalOpen] = useState(false);
-
-  const handleSelectCategory = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-    setIsCrisisModalOpen(true);
-  };
-
-  const [localProfile, setLocalProfile] = useState<UserProfileData | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("aounak-user-profile");
-        if (saved) return JSON.parse(saved);
-      } catch (err) {
-        console.error("Error reading localStorage profile", err);
-      }
-    }
-    return null;
-  });
-
-  const refreshLocalProfile = () => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem("aounak-user-profile");
-        if (saved) {
-          setLocalProfile(JSON.parse(saved));
-        } else {
-          setLocalProfile(null);
-        }
-      } catch (err) {
-        console.error("Error reading localStorage profile", err);
-      }
-    }
-  };
-
-  // ── Live Incidents ────────────────────────────────────────────────
-  useEffect(() => {
-    const unsubscribe = subscribeToIncidents((incidents) => {
-      setRecentIncidents(incidents.slice(0, 2));
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // ── Online/Offline detection ──────────────────────────────────────
-  const isOnline = useSyncExternalStore(
-    subscribeToNetworkStatus,
-    getNetworkStatus,
-    getServerNetworkStatus
-  );
-
-  const [now] = useState(() => Date.now());
-
-  const timeAgo = (ts: string) => {
-    const diff = Math.floor((now - new Date(ts).getTime()) / 60000);
-    if (diff < 1) return "Just now";
-    if (diff < 60) return `${diff}m ago`;
-    return `${Math.floor(diff / 60)}h ago`;
-  };
-
-
-
-
+export default function SOSChooserPage() {
+  const { t, language, toggleLanguage, isAr } = useLanguage();
 
   return (
-    <div className="relative min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-24 selection:bg-indigo-500/30 overflow-hidden">
-      
-      {/* ─── Cosmic Nebulas (Background Orbs) ───────────────────── */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[20%] right-[-10%] w-[400px] h-[400px] bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-sky-600/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950 via-slate-950 to-zinc-950 pb-10 selection:bg-rose-500/30">
+      <div className="pointer-events-none absolute right-[-10%] top-[-10%] h-[500px] w-[500px] rounded-full bg-rose-600/10 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-[20%] left-[-10%] h-[400px] w-[400px] rounded-full bg-indigo-600/10 blur-[100px]" />
 
-      {/* ─── Header ─────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-40 bg-zinc-950/40 backdrop-blur-xl border-b border-white/10">
-        <div className="relative px-5 py-5 max-w-2xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400 flex items-center gap-2">
-              {t("Aounak")}
-              {language === "en" && (
-                <span className="text-indigo-200/60 font-medium text-lg tracking-normal" dir="rtl">
-                  عَوْنَك
-                </span>
-              )}
-            </h1>
-            <p className="text-indigo-200/50 text-xs mt-0.5 tracking-widest uppercase font-medium">
-              {t("Rapid Response Network")}
-              {localProfile ? ` · ${t("Hello")}, ${localProfile.name}` : ` · ${t("Guest")}`}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-2.5">
-            {/* Requester Profile Settings Button */}
-            <button
-              type="button"
-              onClick={() => setIsProfileModalOpen(true)}
-              className="relative flex items-center justify-center bg-zinc-900/50 border border-zinc-700/50 hover:bg-zinc-800 text-indigo-200/90 rounded-full h-9 w-9 transition-all duration-300 active:scale-95 shadow-md"
-              title={t("My Profile")}
-            >
-              <User size={16} />
-              <span className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full border border-zinc-950 ${
-                localProfile ? "bg-emerald-400" : "bg-rose-500 animate-pulse"
-              }`} />
-            </button>
-            {/* Language Switcher Toggle */}
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="bg-zinc-900/50 border border-zinc-700/50 hover:bg-zinc-800 text-indigo-200/90 rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wider uppercase transition-all duration-300 active:scale-95 shadow-md"
-            >
-              {language === "en" ? "عربي 🌐" : "🌐 EN"}
-            </button>
+      <nav className="relative z-10 mx-auto flex max-w-2xl items-center justify-between px-5 py-4">
+        <Link href="/">
+          <Button variant="ghost" className="-ml-2 flex h-10 w-10 items-center justify-center rounded-full p-0 text-zinc-400 hover:bg-white/5 hover:text-white">
+            <ChevronLeft size={24} strokeWidth={1.5} className={language === "ar" ? "rotate-180" : ""} />
+          </Button>
+        </Link>
 
-            {/* Live network status indicator */}
-            <div className="flex items-center gap-2 bg-zinc-900/50 border border-zinc-700/50 rounded-full px-3 py-1.5 backdrop-blur-md">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isOnline
-                    ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
-                    : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)] animate-pulse"
-                }`}
-              />
-              <span className="text-xs text-indigo-100/70 font-semibold tracking-widest uppercase">
-                {isOnline ? t("Online") : t("Offline")}
-              </span>
-            </div>
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          className="rounded-full border border-zinc-700/50 bg-zinc-900/50 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-200/90 shadow-md transition-all duration-300 hover:bg-zinc-800 active:scale-95"
+        >
+          {language === "en" ? "عربي 🌐" : "🌐 EN"}
+        </button>
+      </nav>
+
+      <main className="relative z-10 mx-auto max-w-2xl space-y-8 px-5 py-6">
+        <div className="relative space-y-3 text-center">
+          <div className="absolute inset-0 -z-10 mx-auto h-32 w-32 rounded-full bg-rose-500/10 blur-[50px]" />
+          <div className="mb-2 inline-flex rounded-3xl border border-rose-500/30 bg-rose-500/10 p-5 shadow-[0_0_30px_rgba(244,63,94,0.15)]">
+            <ShieldAlert size={48} strokeWidth={1.5} className="animate-pulse text-rose-500" />
           </div>
+          <h1 className="bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-3xl font-bold uppercase tracking-widest text-transparent">
+            {t("Send SOS Now")}
+          </h1>
+          <p className="text-sm font-semibold uppercase tracking-widest text-rose-200/60">
+            {t("Choose Emergency Type")}
+          </p>
         </div>
-      </header>
 
-      <main className="relative z-10 px-5 py-8 space-y-10 max-w-2xl mx-auto">
-        {/* Profile Incomplete Warning Banner */}
-        {!localProfile && (
-          <div 
-            onClick={() => setIsProfileModalOpen(true)}
-            className="bg-rose-950/25 border border-rose-500/35 rounded-2xl p-4 flex items-start gap-3 cursor-pointer hover:bg-rose-950/30 transition-all duration-300 animate-in fade-in slide-in-from-top-4"
-          >
-            <AlertCircle size={18} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
-            <p className="text-rose-200/90 text-xs font-semibold tracking-wide leading-relaxed">
-              {t("Your Profile is incomplete. Tap user icon to set contact details.")}
-            </p>
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+          {sosTypes.map((sos) => {
+            const Icon = sos.lucideIconName && iconMap[sos.lucideIconName] ? iconMap[sos.lucideIconName] : Activity;
+            const style = sos.styleConfig ?? {
+              bg: "bg-zinc-900/40 border border-zinc-800/50 hover:bg-white/5",
+              text: "text-zinc-300",
+              iconColor: "text-zinc-400",
+            };
 
-        {/* ─── Risk Radar ───────────────────────────────────────── */}
-        <RiskRadar />
-
-        {/* ─── Emergency SOS Grid ───────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
-            <h2 className="text-lg font-bold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400">
-              {t("Emergency SOS")}
-            </h2>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {sosTypes.map((sos) => {
-              const Icon = sos.lucideIconName && iconMap[sos.lucideIconName] ? iconMap[sos.lucideIconName] : Activity;
-              const style = sos.styleConfig || {
-                bg: "bg-zinc-900/40 backdrop-blur-md border border-zinc-800/50 hover:bg-white/5",
-                border: "border-white/10",
-                text: "text-zinc-300",
-                hoverBg: "hover:bg-white/10",
-                iconColor: "text-zinc-400"
-              };
-
-              return (
-                <button 
-                  key={sos.id} 
-                  onClick={() => handleSelectCategory(sos.id)}
-                  type="button"
-                  className={`group relative overflow-hidden rounded-2xl p-5 text-center cursor-pointer ${style.bg} w-full`}
-                >
-                  <div className="relative flex flex-col items-center">
-                    <Icon size={32} strokeWidth={1.5} className={`${style.iconColor} mb-3 transition-transform duration-500 group-hover:scale-110`} />
-                    <div className={`font-semibold ${style.text} text-sm tracking-wide uppercase`}>
-                      {language === "ar" ? sos.labelAr : sos.label}
-                    </div>
-                    {language === "en" && (
-                      <div className="text-indigo-200/50 font-medium text-xs mt-1" dir="rtl">
-                        {sos.labelAr}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ─── Recent Activity ──────────────────────────────────── */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
-            <h2 className="text-lg font-bold tracking-widest uppercase text-transparent bg-clip-text bg-gradient-to-r from-white via-zinc-200 to-zinc-400">
-              {t("Recent Activity")}
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {recentIncidents.length === 0 ? (
-               <p className="text-zinc-500 text-sm font-medium">{t("No recent incidents recorded.")}</p>
-            ) : (
-              recentIncidents.map((inc) => {
-                const sosType = sosTypes.find((s) => s.id === inc.type);
-                const Icon = sosType?.lucideIconName && iconMap[sosType.lucideIconName] ? iconMap[sosType.lucideIconName] : Activity;
-                
-                return (
-                  <Card key={inc.id} className="border-zinc-800/50 bg-zinc-900/40 backdrop-blur-md rounded-2xl shadow-none hover:-translate-y-1 hover:border-t-indigo-500/30 transition-all duration-500">
-                    <CardContent className="pt-5 pb-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2.5 rounded-full bg-zinc-950/50 border border-zinc-800">
-                             <Icon size={20} strokeWidth={1.5} className="text-indigo-400" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-zinc-200 text-sm tracking-wide uppercase">
-                              {language === "ar" ? (sosType?.labelAr || inc.type) : (sosType?.label || inc.type)}
-                            </p>
-                            <p className="text-xs text-indigo-200/50 font-medium mt-0.5">
-                              {inc.requesterName} · {timeAgo(inc.timestamp)}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className={
-                            inc.status === "pending"
-                              ? "bg-amber-950/30 border-amber-500/30 text-amber-400 font-medium animate-pulse"
-                              : "bg-emerald-950/30 border-emerald-500/30 text-emerald-400 font-medium"
-                          }
-                        >
-                          {t(inc.status.charAt(0).toUpperCase() + inc.status.slice(1))}
-                        </Badge>
-                      </div>
-                      {inc.aiClassification && (
-                        <div className="mt-4 flex items-center gap-2.5 bg-indigo-950/30 border border-indigo-500/20 rounded-xl px-3.5 py-2.5">
-                          <BrainCircuit size={16} strokeWidth={1.5} className="text-indigo-400" />
-                          <span className="text-indigo-300 text-xs font-medium tracking-wider uppercase">
-                            {t("AI Match:")} {inc.aiClassification}
-                          </span>
-                        </div>
+            return (
+              <Link key={sos.id} href={`/sos/report?type=${sos.id}`} className="block">
+                <Card className={`group min-h-36 overflow-hidden rounded-2xl shadow-none ${style.bg}`}>
+                  <CardContent className="flex h-full flex-col items-center justify-between p-5 text-center">
+                    <Icon size={34} strokeWidth={1.5} className={`${style.iconColor} mb-3 transition-transform duration-500 group-hover:scale-110`} />
+                    <div>
+                      <p className={`text-sm font-bold uppercase tracking-wide ${style.text}`}>
+                        {language === "ar" ? sos.labelAr : sos.label}
+                      </p>
+                      {language === "en" && (
+                        <p className="mt-1 text-xs font-medium text-indigo-200/50" dir="rtl">
+                          {sos.labelAr}
+                        </p>
                       )}
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        </section>
-      </main>
-
-      {/* ─── Fixed Bottom Navigation ────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/10 bg-zinc-950/60 backdrop-blur-xl px-5 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)] animate-pulse"
-              }`}
-            />
-            <span className="text-xs text-indigo-200/60 font-medium tracking-widest uppercase">
-              {isOnline ? t("Network Sync OK") : t("SMS Fallback Ready")}
-            </span>
-          </div>
-          <Link href="/responder">
-            <Button
-              variant="outline"
-              className="border-zinc-700/50 bg-zinc-900/50 text-zinc-300 hover:bg-indigo-950/50 hover:text-indigo-200 hover:border-indigo-500/30 transition-all duration-300 rounded-xl px-5 flex items-center gap-2 h-10"
-            >
-              <span className="font-semibold tracking-wide uppercase text-xs">{t("Dispatch Center")}</span>
-              <ArrowRight size={16} strokeWidth={1.5} className={`opacity-70 ${language === "ar" ? "rotate-180" : ""}`} />
-            </Button>
-          </Link>
+                    </div>
+                    <ArrowRight size={15} className={`mt-4 text-zinc-500 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-rose-300 ${isAr ? "rotate-180" : ""}`} />
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
-      </div>
-
-      {/* User Profile Settings Modal */}
-      {isProfileModalOpen && (
-        <UserProfileModal 
-          isOpen={isProfileModalOpen} 
-          onClose={() => setIsProfileModalOpen(false)} 
-          onSave={refreshLocalProfile} 
-        />
-      )}
-
-      {/* Crisis Setup Modal */}
-      {isCrisisModalOpen && (
-        <CrisisSetupModal
-          isOpen={isCrisisModalOpen}
-          onClose={() => setIsCrisisModalOpen(false)}
-          sosCategory={selectedCategory}
-        />
-      )}
+      </main>
     </div>
   );
 }
-

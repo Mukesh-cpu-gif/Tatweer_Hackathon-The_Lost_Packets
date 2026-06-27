@@ -40,9 +40,18 @@ Firebase client config is not a backend password. Protect app data through Fireb
 
 Starter Firestore rules are included in `firestore.rules` and referenced by `firebase.json`. Review and deploy them from the Firebase CLI once the final collection model is confirmed.
 
-## Auth And Responder Profiles
+## Auth, Profiles, And SOS Data
 
-Email/password and Google auth send users to the responder dashboard. New responders are no longer assigned fixed profile details; they must save their own name, phone number, vehicle, skills, availability, and optional GPS location.
+Email/password and Google auth send users to the community home. New users register first, then complete a community profile with contact details, vehicle details, helper skills, availability, optional GPS location, and medical notes.
+
+The Firestore model is split by privacy level:
+
+- `profiles/{uid}` stores the signed-in user's private full profile.
+- `responderDirectory/{uid}` stores public-safe helper matching fields only.
+- `incidents/{incidentId}` stores a public-safe SOS summary so guests can send live digital SOS without registration.
+- `incidents/{incidentId}/blocks/{blockKey}` stores optional request details added after the first SOS has already been sent.
+
+Guest emergency creation is intentionally allowed through strict Firestore rules for minimal incident summaries. Sensitive profile data remains private, and incident detail blocks are readable only by signed-in users.
 
 Phone authentication uses Firebase Phone Auth and requires the Firebase project to be configured for phone sign-in and reCAPTCHA-compatible authorized domains.
 

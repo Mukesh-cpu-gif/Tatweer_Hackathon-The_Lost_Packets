@@ -1,9 +1,10 @@
 import type { Coordinates } from "./geo";
+import { createIncidentSummary, getClientSessionId, upsertIncidentBlock } from "./db";
+import { sosTypes } from "./mockData";
 
 const DB_NAME = "aounak-offline";
 const DB_VERSION = 1;
 const SOS_STORE = "sosRequests";
-const SYNC_ENDPOINT = "/api/sos/sync";
 
 export type QueuedSosStatus = "queued" | "syncing" | "synced" | "failed";
 
@@ -136,15 +137,25 @@ export async function syncQueuedSosRequests() {
     await updateSosRequest(syncingRequest);
 
     try {
-      const response = await fetch(SYNC_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(syncingRequest),
-        keepalive: true,
+      const sosType =
+        sosTypes.find((type) => type.id === syncingRequest.emergencyType) ??
+        sosTypes.find((type) => type.label === syncingRequest.emergencyType) ??
+        sosTypes.find((type) => type.labelAr === syncingRequest.emergencyType);
+
+      const incidentId = await createIncidentSummary({
+        type: sosType?.id ?? "medical",
+        location: syncingRequest.coords,
+        requesterName: "Offline SOS",
+        clientSessionId: getClientSessionId(),
       });
 
-      if (!response.ok) {
-        throw new Error(`Sync failed with ${response.status}`);
+      if (syncingRequest.extraInfo?.trim()) {
+        await upsertIncidentBlock(incidentId, {
+          key: "legacyDetails",
+          title: "Offline SMS Details",
+          summary: syncingRequest.extraInfo,
+          clientSessionId: getClientSessionId(),
+        });
       }
 
       const syncedRequest: QueuedSosRequest = {

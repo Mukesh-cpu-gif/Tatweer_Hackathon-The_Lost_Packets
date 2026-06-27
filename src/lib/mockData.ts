@@ -53,6 +53,14 @@ export interface Incident {
   timestamp: string;
   requesterName: string;
   aiClassification?: string;
+  clientSessionId?: string;
+  createdByUid?: string;
+  responderCounts?: {
+    notified: number;
+    enRoute: number;
+  };
+  acceptedBy?: string[];
+  acceptedByNames?: string[];
 }
 
 export interface WeatherAlert {
@@ -309,6 +317,10 @@ export const mockIncidents: Incident[] = [
     requiredSkills: ["Winch", "4x4"],
     timestamp: new Date(MOCK_NOW - 4 * 60000).toISOString(),
     requesterName: "Farm Worker (Site 7)",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 3, enRoute: 0 },
+    acceptedBy: [],
+    acceptedByNames: [],
   },
   {
     id: "INC-1043",
@@ -319,6 +331,10 @@ export const mockIncidents: Incident[] = [
     timestamp: new Date(MOCK_NOW - 12 * 60000).toISOString(),
     requesterName: "Rajesh K.",
     aiClassification: "Arabian Horned Viper (High Confidence)",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 2, enRoute: 1 },
+    acceptedBy: ["seeded-helper"],
+    acceptedByNames: ["Saeed Al Rumaithi"],
   },
   {
     id: "INC-1044",
@@ -328,6 +344,10 @@ export const mockIncidents: Incident[] = [
     requiredSkills: ["Livestock Expert"],
     timestamp: new Date(MOCK_NOW - 2 * 60000).toISOString(),
     requesterName: "Hamad S.",
+    clientSessionId: "seeded-demo",
+    responderCounts: { notified: 2, enRoute: 0 },
+    acceptedBy: [],
+    acceptedByNames: [],
   },
 ];
 

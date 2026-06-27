@@ -6,10 +6,54 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function hasValidResponderProfile() {
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function isCoordinates(value) {
+      return value is map
+        && value.lat is number
+        && value.lng is number;
+    }
+
+    function validSkillList(value) {
+      return value is list && value.size() <= 20;
+    }
+
+    function validProfile() {
       return request.resource.data.keys().hasOnly([
           'name',
           'phone',
+          'vehicleType',
+          'skills',
+          'medicalDetails',
+          'available',
+          'location',
+          'updatedAt'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() > 0
+        && request.resource.data.phone.size() <= 40
+        && request.resource.data.vehicleType is string
+        && request.resource.data.vehicleType.size() <= 120
+        && validSkillList(request.resource.data.skills)
+        && request.resource.data.medicalDetails is string
+        && request.resource.data.medicalDetails.size() <= 1200
+        && request.resource.data.available is bool
+        && request.resource.data.updatedAt is timestamp
+        && (
+          !request.resource.data.keys().hasAny(['location'])
+          || isCoordinates(request.resource.data.location)
+        );
+    }
+
+    function validDirectoryProfile() {
+      return request.resource.data.keys().hasOnly([
+          'name',
+          'publicPhone',
           'vehicleType',
           'skills',
           'available',
@@ -18,36 +62,140 @@ service cloud.firestore {
         ])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
-        && request.resource.data.phone is string
-        && request.resource.data.phone.size() > 0
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.publicPhone is string
+        && request.resource.data.publicPhone.size() <= 40
         && request.resource.data.vehicleType is string
-        && request.resource.data.vehicleType.size() > 0
-        && request.resource.data.skills is list
-        && request.resource.data.skills.size() > 0
+        && request.resource.data.vehicleType.size() <= 120
+        && validSkillList(request.resource.data.skills)
         && request.resource.data.available is bool
+        && request.resource.data.updatedAt is timestamp
         && (
           !request.resource.data.keys().hasAny(['location'])
-          || (
-            request.resource.data.location.lat is number
-            && request.resource.data.location.lng is number
-          )
+          || isCoordinates(request.resource.data.location)
         );
+    }
+
+    function validIncidentCreate() {
+      return request.resource.data.keys().hasOnly([
+          'type',
+          'location',
+          'status',
+          'requesterName',
+          'requiredSkills',
+          'clientSessionId',
+          'createdByUid',
+          'responderCounts',
+          'acceptedBy',
+          'acceptedByNames',
+          'timestamp',
+          'updatedAt'
+        ])
+        && request.resource.data.type in [
+          'venomous_bite',
+          'medical',
+          'vehicle_stuck',
+          'sick_livestock',
+          'out_of_fuel',
+          'water_emergency'
+        ]
+        && isCoordinates(request.resource.data.location)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.requesterName is string
+        && request.resource.data.requesterName.size() > 0
+        && request.resource.data.requesterName.size() <= 120
+        && validSkillList(request.resource.data.requiredSkills)
+        && request.resource.data.clientSessionId is string
+        && request.resource.data.clientSessionId.size() >= 8
+        && request.resource.data.clientSessionId.size() <= 120
+        && (
+          request.resource.data.createdByUid == null
+          || (signedIn() && request.resource.data.createdByUid == request.auth.uid)
+        )
+        && request.resource.data.responderCounts is map
+        && request.resource.data.responderCounts.notified is number
+        && request.resource.data.responderCounts.enRoute == 0
+        && request.resource.data.acceptedBy is list
+        && request.resource.data.acceptedBy.size() == 0
+        && request.resource.data.acceptedByNames is list
+        && request.resource.data.acceptedByNames.size() == 0
+        && request.resource.data.timestamp is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validIncidentAcceptance() {
+      return signedIn()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status',
+          'acceptedBy',
+          'acceptedByNames',
+          'responderCounts',
+          'updatedAt'
+        ])
+        && request.resource.data.status in ['pending', 'accepted', 'resolved']
+        && request.resource.data.acceptedBy is list
+        && request.resource.data.acceptedByNames is list
+        && request.resource.data.responderCounts is map
+        && request.resource.data.responderCounts.notified is number
+        && request.resource.data.responderCounts.enRoute is number
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function validIncidentBlock(incidentId) {
+      return request.resource.data.keys().hasOnly([
+          'key',
+          'title',
+          'summary',
+          'clientSessionId',
+          'updatedByUid',
+          'updatedAt'
+        ])
+        && request.resource.data.key is string
+        && request.resource.data.key.size() > 0
+        && request.resource.data.key.size() <= 80
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 120
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() <= 1800
+        && request.resource.data.clientSessionId is string
+        && request.resource.data.clientSessionId == get(/databases/$(database)/documents/incidents/$(incidentId)).data.clientSessionId
+        && (
+          request.resource.data.updatedByUid == null
+          || (signedIn() && request.resource.data.updatedByUid == request.auth.uid)
+        )
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    match /profiles/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && validProfile();
+      allow delete: if false;
+    }
+
+    match /responderDirectory/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && validDirectoryProfile();
+      allow delete: if false;
     }
 
     match /responders/{userId} {
       allow read: if signedIn();
-      allow create, update: if signedIn()
-        && request.auth.uid == userId
-        && hasValidResponderProfile();
+      allow create, update: if isOwner(userId) && validDirectoryProfile();
       allow delete: if false;
     }
 
     match /incidents/{incidentId} {
-      allow read, create: if signedIn();
-      allow update: if signedIn()
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
-        && request.resource.data.status in ['pending', 'accepted', 'resolved'];
+      allow read: if true;
+      allow create: if validIncidentCreate();
+      allow update: if validIncidentAcceptance();
       allow delete: if false;
+
+      match /blocks/{blockId} {
+        allow read: if signedIn();
+        allow create, update: if validIncidentBlock(incidentId);
+        allow delete: if false;
+      }
     }
 
     match /weatherAlerts/{alertId} {

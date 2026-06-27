@@ -150,49 +150,92 @@ export function avoidBlockades(
   return { path, bypassed };
 }
 
-// Simulated routing fallback model for Al Qua'a E95
+// Predefined GPS trace for E95 highway in the Al Qua'a region
+const E95_PATH: Coordinates[] = [
+  { lat: 23.680, lng: 55.518 },
+  { lat: 23.650, lng: 55.508 },
+  { lat: 23.600, lng: 55.494 },
+  { lat: 23.570, lng: 55.488 },
+  { lat: 23.540, lng: 55.484 },
+  { lat: 23.510, lng: 55.481 },
+  { lat: 23.470, lng: 55.476 },
+  { lat: 23.430, lng: 55.472 },
+  { lat: 23.380, lng: 55.467 },
+];
+
+export function getHighwaySegment(start: Coordinates, end: Coordinates): Coordinates[] {
+  let startIdx = 0;
+  let minDistStart = Infinity;
+  for (let i = 0; i < E95_PATH.length; i++) {
+    const d = calculateDistance(start, E95_PATH[i]);
+    if (d < minDistStart) {
+      minDistStart = d;
+      startIdx = i;
+    }
+  }
+
+  let endIdx = 0;
+  let minDistEnd = Infinity;
+  for (let i = 0; i < E95_PATH.length; i++) {
+    const d = calculateDistance(end, E95_PATH[i]);
+    if (d < minDistEnd) {
+      minDistEnd = d;
+      endIdx = i;
+    }
+  }
+
+  const segment: Coordinates[] = [];
+  const step = startIdx < endIdx ? 1 : -1;
+  for (let i = startIdx; i !== endIdx + step; i += step) {
+    segment.push(E95_PATH[i]);
+  }
+  return segment;
+}
+
 export function getSimulatedRoute(
   start: Coordinates,
   end: Coordinates,
   blockades: Blockade[],
   safeRoutes: SafeRoute[]
 ) {
-  const startSnapped = snapToHighway(start);
-  const endSnapped = snapToHighway(end);
+  const highwaySegment = getHighwaySegment(start, end);
+  const roadEntrancePoint = highwaySegment[0];
+  const roadExitPoint = highwaySegment[highwaySegment.length - 1];
 
   // ─── 1. Paved-only route (Ends at nearest road point, passenger walks/tows) ───
-  // Route: Start -> StartSnapped -> EndSnapped
-  const pavedPolyline: Coordinates[] = [start];
-  if (calculateDistance(start, startSnapped) > 0.1) pavedPolyline.push(startSnapped);
-  if (calculateDistance(startSnapped, endSnapped) > 0.1) pavedPolyline.push(endSnapped);
+  const pavedPolyline: Coordinates[] = [];
+  pavedPolyline.push(start);
+  if (calculateDistance(start, roadEntrancePoint) > 0.1) {
+    pavedPolyline.push(roadEntrancePoint);
+  }
+  for (let i = 1; i < highwaySegment.length; i++) {
+    pavedPolyline.push(highwaySegment[i]);
+  }
 
-  const pavedRoadDist = calculateDistance(start, startSnapped) + calculateDistance(startSnapped, endSnapped);
-  const walkDist = calculateDistance(endSnapped, end);
-
+  let pavedRoadDist = calculateDistance(start, roadEntrancePoint);
+  for (let i = 0; i < highwaySegment.length - 1; i++) {
+    pavedRoadDist += calculateDistance(highwaySegment[i], highwaySegment[i + 1]);
+  }
+  
+  const walkDist = calculateDistance(roadExitPoint, end);
   const pavedDuration = (pavedRoadDist / SPEED_PAVED) * 60 + (walkDist / SPEED_OFFROAD_WALK) * 60;
   const pavedTotalDist = pavedRoadDist + walkDist;
 
   // ─── 2. Aounak Hybrid Route ───
-  // We evaluate:
-  // A) Normal Highway Exit: Start -> StartSnapped -> EndSnapped -> (Off-road with bypass) -> End
-  // B) Safe Routes: Start -> StartSnapped -> SafeRouteStart -> SafeRoutePath -> SafeRouteEnd -> (Off-road) -> End
-  
-  // Option A (Normal Exit)
-  const exitOffroadAvoidance = avoidBlockades(endSnapped, end, blockades);
+  const exitOffroadAvoidance = avoidBlockades(roadExitPoint, end, blockades);
   const exitOffroadPath = exitOffroadAvoidance.path;
   let exitOffroadDist = 0;
   for (let i = 0; i < exitOffroadPath.length - 1; i++) {
     exitOffroadDist += calculateDistance(exitOffroadPath[i], exitOffroadPath[i + 1]);
   }
-  const exitTotalPavedDist = calculateDistance(start, startSnapped) + calculateDistance(startSnapped, endSnapped);
-  const exitTime = (exitTotalPavedDist / SPEED_PAVED) * 60 + (exitOffroadDist / SPEED_OFFROAD_DRIVE) * 60;
-  const exitPolyline: Coordinates[] = [...pavedPolyline, ...exitOffroadPath.slice(1)];
+  
+  const exitTime = (pavedRoadDist / SPEED_PAVED) * 60 + (exitOffroadDist / SPEED_OFFROAD_DRIVE) * 60;
+  const exitPolyline = [...pavedPolyline, ...exitOffroadPath.slice(1)];
 
-  // Option B (Check all Safe Routes)
   let bestRouteOption = {
     time: exitTime,
-    distance: exitTotalPavedDist + exitOffroadDist,
-    pavedDist: exitTotalPavedDist,
+    distance: pavedRoadDist + exitOffroadDist,
+    pavedDist: pavedRoadDist,
     offroadDist: exitOffroadDist,
     polyline: exitPolyline,
     bypassed: exitOffroadAvoidance.bypassed,
@@ -200,47 +243,52 @@ export function getSimulatedRoute(
   };
 
   for (const sr of safeRoutes) {
-    const srStartSnapped = snapToHighway(sr.startPoint);
-    const pavedDistToSr = calculateDistance(start, startSnapped) + calculateDistance(startSnapped, srStartSnapped);
-    
-    // Path: start -> startSnapped -> srStartSnapped -> safeRoutePath -> safeRouteEnd -> end
+    const srHighwaySegment = getHighwaySegment(start, sr.startPoint);
+    const srEntrance = srHighwaySegment[0];
+    const srExit = srHighwaySegment[srHighwaySegment.length - 1];
+
+    let srPavedDist = calculateDistance(start, srEntrance);
+    for (let i = 0; i < srHighwaySegment.length - 1; i++) {
+      srPavedDist += calculateDistance(srHighwaySegment[i], srHighwaySegment[i + 1]);
+    }
+    srPavedDist += calculateDistance(srExit, sr.startPoint);
+
     let srPathDist = 0;
     for (let i = 0; i < sr.path.length - 1; i++) {
       srPathDist += calculateDistance(sr.path[i], sr.path[i + 1]);
     }
+
     const finalLegAvoidance = avoidBlockades(sr.endPoint, end, blockades);
     let finalLegDist = 0;
     for (let i = 0; i < finalLegAvoidance.path.length - 1; i++) {
       finalLegDist += calculateDistance(finalLegAvoidance.path[i], finalLegAvoidance.path[i + 1]);
     }
 
-    const srTotalPaved = pavedDistToSr;
     const srTotalOffroad = srPathDist + finalLegDist;
-    const srTime = (srTotalPaved / SPEED_PAVED) * 60 + (srTotalOffroad / SPEED_OFFROAD_DRIVE) * 60;
+    const srTime = (srPavedDist / SPEED_PAVED) * 60 + (srTotalOffroad / SPEED_OFFROAD_DRIVE) * 60;
 
     if (srTime < bestRouteOption.time) {
       const srPolyline: Coordinates[] = [start];
-      if (calculateDistance(start, startSnapped) > 0.1) srPolyline.push(startSnapped);
-      if (calculateDistance(startSnapped, srStartSnapped) > 0.1) srPolyline.push(srStartSnapped);
-      
-      // Add safe route path coordinates
-      sr.path.forEach(pt => {
-        // Avoid duplicate start point
+      if (calculateDistance(start, srEntrance) > 0.1) {
+        srPolyline.push(srEntrance);
+      }
+      for (let i = 1; i < srHighwaySegment.length; i++) {
+        srPolyline.push(srHighwaySegment[i]);
+      }
+      sr.path.forEach((pt) => {
         const last = srPolyline[srPolyline.length - 1];
         if (!last || calculateDistance(last, pt) > 0.05) {
           srPolyline.push(pt);
         }
       });
-
-      // Add final leg coordinates (excluding duplicated start)
-      finalLegAvoidance.path.slice(1).forEach(pt => {
+      finalLegAvoidance.path.slice(1).forEach((pt) => {
         srPolyline.push(pt);
       });
 
       bestRouteOption = {
         time: srTime,
-        distance: srTotalPaved + srTotalOffroad,
-        pavedDist: srTotalPaved,
+        distance: srPavedDist + srTotalOffroad,
+        pavedDist: srPavedDist,
         offroadDist: srTotalOffroad,
         polyline: srPolyline,
         bypassed: finalLegAvoidance.bypassed,
@@ -268,3 +316,5 @@ export function getSimulatedRoute(
     },
   };
 }
+
+

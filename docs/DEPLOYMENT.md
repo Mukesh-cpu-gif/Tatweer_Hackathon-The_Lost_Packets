@@ -1,6 +1,6 @@
 # Deployment
 
-Aounak can be deployed to Vercel or Firebase Hosting. Vercel is the simplest path for a Next.js demo.
+Aounak can be deployed to Vercel or Firebase Hosting.
 
 ## Vercel
 

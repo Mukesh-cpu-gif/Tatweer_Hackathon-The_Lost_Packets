@@ -20,6 +20,13 @@ This document keeps Aounak's hackathon claims falsifiable. Statuses should be re
 | English/Arabic switching and RTL support are implemented | `LanguageProvider` and translation table | Verified by inspection |
 | On-device animal/threat assistant is available for venomous threat reports | `OfflineAnimalAI` and `public/model` assets | Prototype |
 | Route comparison view exists | `/responder/map`, Leaflet components | Prototype |
+| Voice commanded SOS AI with HTML5 Speech Recognition and offline NLP parsing | `voice-ai.ts` and microphone UI | Verified |
+| Continuous recording with 3-second silence detection auto-stop | `useSpeechRecognition` hook | Verified |
+| Manual text command fallback for offline/blocked browser speech engines | `Keyboard` toggle in `VoiceAssistOverlay` | Verified |
+| Classify emergencies involving cats, horses, dogs and other pets/birds under sick livestock | `voice-ai.ts` NLP parser | Verified |
+| Notify responders and dispatcher when incident is created using voice commands | `VoiceAssistOverlay` success notification logic | Verified |
+| Reusable BodyLocationSelector for Venomous Bites and general Medical Assist | `BodyLocationSelector` and `SOSClient` integration | Verified |
+| Hybrid paved-to-offroad routing engine and active hazard reporting | `/responder/map` Leaflet logic | Prototype |
 | App lint passes | `npm run lint` | Verified |
 | App typecheck passes | `npm run typecheck` | Verified |
 | App builds successfully | `npm run build` | Verified |
@@ -49,6 +56,50 @@ This document keeps Aounak's hackathon claims falsifiable. Statuses should be re
 | Scalability | Skill tags, data model, community profiles, and deployment approach can extend beyond one area |
 | Evidence | This file links claims to screenshots, code paths, and command checks |
 | Documentation | README plus docs cover setup, testing, architecture, feasibility, limitations, deployment, and security |
+
+## Testing
+
+### Command Checks
+
+Run from the repository root:
+
+```bash
+npm install
+npm run lint
+npm run typecheck
+npm run build
+```
+
+| Command | Result | Notes |
+|---|---|---|
+| `npm run lint` | Passed | No warnings after hook dependency fixes |
+| `npm run typecheck` | Passed | Uses `tsc --noEmit` |
+| `npm run build` | Passed | Next.js production build completed successfully |
+
+### Manual End-to-End Test
+
+| Step | Action | Expected result | Status |
+|---|---|---|---|
+| 1 | Open `/` | Welcome screen loads with SOS, login, register actions | Passed locally |
+| 2 | Toggle language | Interface direction/language changes | Pending manual check |
+| 3 | Open `/sos` | Emergency type grid appears | Passed locally |
+| 4 | Open `/sos/report?type=vehicle_stuck` | Vehicle stuck report opens with coordinates panel | Passed locally |
+| 5 | Copy coordinates | Coordinates are copied or browser blocks clipboard gracefully | Pending |
+| 6 | Send live digital SOS | Incident summary is created in Firestore or local fallback | Pending |
+| 7 | Add optional request details | Details are saved/displayed after live SOS | Pending |
+| 8 | Trigger offline SMS fallback | SMS app/deep link opens with map coordinates; do not send a real SMS | Pending |
+| 9 | Open `/profile` | Profile readiness form/status is visible when auth or demo mode permits | Pending authenticated manual capture |
+| 10 | Open `/home` | Dashboard shows SOS tiles and recent activity state | Pending authenticated manual capture |
+| 11 | Open `/history` | Created/helped activity or useful empty state appears | Pending authenticated manual capture |
+| 12 | Open `/responder` | Authenticated responder feed appears; unauthenticated users are redirected | Pending |
+| 13 | Open `/responder/map?incidentId=<id>` | Route prototype appears for an existing incident | Pending manual capture with real/local incident ID |
+
+### Test Data Rules
+
+- Use only fake names, emails, phone numbers, and incident details.
+- Use Al Qua'a fallback/demo coordinates when browser location is blocked.
+- Do not send real SMS messages during testing.
+- Do not commit `.env.local`, Firebase private keys, screenshots with real data, or generated build folders.
 
 ## Evidence Boundaries
 

@@ -371,12 +371,13 @@ export default function SOSClient() {
     if (!activeIncidentId) return;
 
     return subscribeIncidentBlocks(activeIncidentId, (blocks) => {
-      setSavedBlocks(
-        blocks.reduce<SavedBlocks>((acc, block) => {
-          acc[block.key] = block.summary;
-          return acc;
-        }, {})
-      );
+      setSavedBlocks((prev) => {
+        const next = { ...prev };
+        blocks.forEach((block) => {
+          next[block.key] = block.summary;
+        });
+        return next;
+      });
     });
   }, [activeIncidentId]);
 

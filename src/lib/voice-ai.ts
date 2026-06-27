@@ -7,6 +7,7 @@ export interface ParsedVoiceEmergency {
   passengers: number;
   notes: string;
   specifics: string;
+  bodyPart: string;
 }
 
 // Smart offline-first keyword classifier and entity extractor
@@ -210,7 +211,11 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
     } else {
       specifics = "Animal profile: Livestock";
     }
+  } else if (type === "medical") {
+    specifics = parseBodyPart(text);
   }
+
+  const bodyPart = parseBodyPart(text);
 
   return {
     type,
@@ -219,5 +224,37 @@ export function parseVoiceInput(text: string): ParsedVoiceEmergency {
     passengers,
     notes,
     specifics,
+    bodyPart,
   };
+}
+
+// Utility to parse human body injury locations from text
+export function parseBodyPart(text: string): string {
+  const norm = text.toLowerCase();
+  if (norm.includes("head") || norm.includes("neck") || norm.includes("face") || norm.includes("throat")) return "Head & Neck";
+  if (norm.includes("torso") || norm.includes("chest") || norm.includes("stomach") || norm.includes("back") || norm.includes("abdomen") || norm.includes("belly")) return "Torso";
+  
+  if (norm.includes("right arm") || norm.includes("right hand") || norm.includes("right elbow") || norm.includes("right shoulder") || norm.includes("right wrist")) return "Right Arm";
+  if (norm.includes("left arm") || norm.includes("left hand") || norm.includes("left elbow") || norm.includes("left shoulder") || norm.includes("left wrist")) return "Left Arm";
+  if (norm.includes("arm") || norm.includes("hand") || norm.includes("shoulder") || norm.includes("elbow") || norm.includes("wrist")) {
+    if (norm.includes("left")) return "Left Arm";
+    return "Right Arm";
+  }
+
+  if (norm.includes("right leg") || norm.includes("right thigh") || norm.includes("right knee") || norm.includes("right shin")) return "Right Leg";
+  if (norm.includes("left leg") || norm.includes("left thigh") || norm.includes("left knee") || norm.includes("left shin")) return "Left Leg";
+  
+  if (norm.includes("right foot") || norm.includes("right toe") || norm.includes("right ankle") || norm.includes("right heel")) return "Right Foot";
+  if (norm.includes("left foot") || norm.includes("left toe") || norm.includes("left ankle") || norm.includes("left heel")) return "Left Foot";
+  
+  if (norm.includes("foot") || norm.includes("toe") || norm.includes("ankle")) {
+    if (norm.includes("left")) return "Left Foot";
+    return "Right Foot";
+  }
+  if (norm.includes("leg") || norm.includes("knee") || norm.includes("thigh")) {
+    if (norm.includes("left")) return "Left Leg";
+    return "Right Leg";
+  }
+
+  return "";
 }

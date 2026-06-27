@@ -27,6 +27,7 @@ import {
 import DeflationGuide from "@/components/DeflationGuide";
 import FuelCalculator from "@/components/FuelCalculator";
 import LivestockSelector from "@/components/LivestockSelector";
+import BodyLocationSelector from "@/components/BodyLocationSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,6 +215,8 @@ export default function SOSClient() {
   const [livestockInfo, setLivestockInfo] = useState("");
   const [waterInfo, setWaterInfo] = useState("");
   const [medicalInfo, setMedicalInfo] = useState("");
+  const [injuryLocation, setInjuryLocation] = useState("");
+  const [venomousBodyPart, setVenomousBodyPart] = useState("");
 
   const handleVenomousChange = useCallback((info: string) => setVenomousThreatInfo(info), []);
   const handleFuelChange = useCallback((info: string) => setFuelRequestInfo(info), []);
@@ -237,10 +240,17 @@ export default function SOSClient() {
         if (draft.passengers) setPeopleCount(draft.passengers);
         if (draft.notes) setCustomNotes(draft.notes);
         
-        if (typeId === "venomous_bite" && draft.specifics) setVenomousThreatInfo(draft.specifics);
+        if (typeId === "venomous_bite") {
+          if (draft.specifics) setVenomousThreatInfo(draft.specifics);
+          if (draft.bodyPart) setVenomousBodyPart(draft.bodyPart);
+        }
         else if (typeId === "out_of_fuel" && draft.specifics) setFuelRequestInfo(draft.specifics);
         else if (typeId === "vehicle_stuck" && draft.specifics) setStuckVehicleInfo(draft.specifics);
         else if (typeId === "sick_livestock" && draft.specifics) setLivestockInfo(draft.specifics);
+        else if (typeId === "medical") {
+          if (draft.notes) setMedicalInfo(draft.notes);
+          if (draft.bodyPart) setInjuryLocation(draft.bodyPart);
+        }
 
         setVoiceAutofilled(true);
         // Clear draft so it doesn't trigger on subsequent loads
@@ -679,7 +689,7 @@ export default function SOSClient() {
               onEdit={editBlock}
               onSave={() => saveBlock("venomousDiagnostics", "Bite Diagnostics", venomousThreatInfo || "Venomous threat diagnostics pending.")}
             >
-              <OfflineAnimalAI onChange={handleVenomousChange} />
+              <OfflineAnimalAI onChange={handleVenomousChange} initialBodyPart={venomousBodyPart} />
             </RequestBlock>
           )}
 
@@ -763,15 +773,35 @@ export default function SOSClient() {
               editing={Boolean(editingBlocks.medical)}
               saving={blockSavingKey === "medical"}
               onEdit={editBlock}
-              onSave={() => saveBlock("medical", "Medical Assist Details", medicalInfo || "Medical assistance details pending.")}
+              onSave={() => {
+                const parts = [];
+                if (injuryLocation) parts.push(`Injury Location: ${injuryLocation}`);
+                if (medicalInfo.trim()) parts.push(`Details: ${medicalInfo.trim()}`);
+                const summary = parts.join(" | ") || "Medical assistance details pending.";
+                saveBlock("medical", "Medical Assist Details", summary);
+              }}
             >
-              <textarea
-                value={medicalInfo}
-                onChange={(event) => setMedicalInfo(event.target.value)}
-                placeholder="Symptoms, injuries, allergies, consciousness..."
-                rows={3}
-                className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none"
-              />
+              <div className="space-y-4">
+                <BodyLocationSelector
+                  selectedPart={injuryLocation}
+                  onSelectPart={setInjuryLocation}
+                  title={t("Select Injury Location")}
+                  themeColor="indigo"
+                />
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                    Injury Details & Symptoms
+                  </label>
+                  <textarea
+                    value={medicalInfo}
+                    onChange={(event) => setMedicalInfo(event.target.value)}
+                    placeholder="Symptoms, injuries, allergies, consciousness..."
+                    rows={3}
+                    className="w-full resize-none rounded-xl border border-zinc-800 bg-zinc-950/40 p-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
             </RequestBlock>
           )}
         </div>

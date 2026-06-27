@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { useLanguage } from "@/context/LanguageContext";
 import { auth, isFirebaseConfigured } from "@/lib/firebase";
-import { type CommunityProfile, saveCommunityProfile, subscribeCommunityProfile } from "@/lib/db";
+import { type CommunityProfile, saveCommunityProfile, subscribeCommunityProfile, clearLocalEmergencyState } from "@/lib/db";
 import type { Coordinates } from "@/lib/geo";
 import { communitySkillOptions } from "@/lib/profileOptions";
 
@@ -145,10 +145,12 @@ export default function ProfileClient() {
 
   const handleLogout = async () => {
     if (!isFirebaseConfigured) {
+      clearLocalEmergencyState();
       router.push("/");
       return;
     }
 
+    clearLocalEmergencyState();
     await signOut(auth);
     router.push("/");
   };

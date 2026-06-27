@@ -105,6 +105,35 @@ const warnFirestoreFallback = (feature: string, error?: unknown) => {
   console.warn(`${feature} is using local cache/fallback because Firestore is unavailable or denied.`, error);
 };
 
+export const clearLocalEmergencyState = () => {
+  if (!isBrowser()) return;
+
+  const exemptKeys = [
+    "aounak-lang",
+    "aounak-local-incidents",
+    "aounak-local-blockades",
+    "aounak-local-safe-routes",
+  ];
+
+  const localKeysToRemove: string[] = [];
+  for (let i = 0; i < window.localStorage.length; i++) {
+    const key = window.localStorage.key(i);
+    if (key && key.startsWith("aounak-") && !exemptKeys.includes(key)) {
+      localKeysToRemove.push(key);
+    }
+  }
+  localKeysToRemove.forEach((k) => window.localStorage.removeItem(k));
+
+  const sessionKeysToRemove: string[] = [];
+  for (let i = 0; i < window.sessionStorage.length; i++) {
+    const key = window.sessionStorage.key(i);
+    if (key && key.startsWith("aounak-") && !exemptKeys.includes(key)) {
+      sessionKeysToRemove.push(key);
+    }
+  }
+  sessionKeysToRemove.forEach((k) => window.sessionStorage.removeItem(k));
+};
+
 const localCommunityProfileKey = (uid: string) => `aounak-community-profile-${uid}`;
 const legacyResponderProfileKey = (uid: string) => `aounak-responder-profile-${uid}`;
 const localIncidentBlocksKey = (incidentId: string) => `aounak-local-incident-blocks-${incidentId}`;

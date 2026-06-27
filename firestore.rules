@@ -88,6 +88,8 @@ service cloud.firestore {
           'responderCounts',
           'acceptedBy',
           'acceptedByNames',
+          'isVoiceCommand',
+          'aiClassification',
           'timestamp',
           'updatedAt'
         ])
@@ -120,7 +122,15 @@ service cloud.firestore {
         && request.resource.data.acceptedByNames is list
         && request.resource.data.acceptedByNames.size() == 0
         && request.resource.data.timestamp is timestamp
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.updatedAt is timestamp
+        && (
+          !request.resource.data.keys().hasAny(['isVoiceCommand'])
+          || request.resource.data.isVoiceCommand is bool
+        )
+        && (
+          !request.resource.data.keys().hasAny(['aiClassification'])
+          || request.resource.data.aiClassification is string
+        );
     }
 
     function validIncidentAcceptance() {

@@ -15,6 +15,7 @@ import {
   saveResponderProfile,
   subscribeToResponderProfile,
   updateResponderAvailability,
+  clearLocalEmergencyState,
 } from "@/lib/db";
 import type { ResponderProfile } from "@/lib/db";
 import { GlassPanel } from "@/components/GlassPanel";
@@ -146,6 +147,7 @@ export default function ResponderDashboard() {
 
   const handleLogout = async () => {
     try {
+      clearLocalEmergencyState();
       await signOut(auth);
       router.push("/login");
     } catch (error) {
